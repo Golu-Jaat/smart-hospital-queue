@@ -100,7 +100,6 @@ function AppointmentsContent() {
     if (bookError) {
       setError(bookError.message);
     } else {
-      // Token generate karo
       const { data: queue } = await supabase
         .from("queues")
         .select("id, current_token_number")
@@ -111,19 +110,30 @@ function AppointmentsContent() {
 
       if (queue) {
         const newToken = queue.current_token_number + 1;
-        await supabase.from("tokens").insert({
-          queue_id: queue.id,
-          patient_id: user.id,
-          token_number: newToken,
-          priority: "normal",
-          status: "waiting",
-          joined_at: new Date().toISOString(),
-        });
+
+        const { data: tokenData } = await supabase
+          .from("tokens")
+          .insert({
+            queue_id: queue.id,
+            patient_id: user.id,
+            token_number: newToken,
+            priority: "normal",
+            status: "waiting",
+            joined_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
         await supabase
           .from("queues")
           .update({ current_token_number: newToken })
           .eq("id", queue.id);
-        setSuccess(`Appointment booked! Your token number is #${newToken}`);
+
+        setSuccess(`Appointment booked! Token #${newToken}`);
+
+        if (tokenData?.id) {
+          router.push(`/patient/queue/${tokenData.id}`);
+        }
       } else {
         setSuccess("Appointment booked! Queue not started yet.");
       }
