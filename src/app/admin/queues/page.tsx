@@ -4,11 +4,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 
-type Doctor = {
-  id: string;
-  specialization: string;
-  profiles: { full_name: string };
-};
+type Doctor = { id: string; specialization: string; profiles: any };
 type Queue = {
   id: string;
   queue_date: string;
