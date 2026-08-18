@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 type Doctor = {
   id: string;
   specialization: string;
-  profiles: { full_name: string };
+  profiles: any;
 };
 type Schedule = {
   id: string;
@@ -16,7 +16,7 @@ type Schedule = {
   end_time: string;
   max_patients: number;
   is_active: boolean;
-  doctors: { specialization: string; profiles: { full_name: string } };
+  doctors: { specialization: string; profiles: any };
 };
 
 const DAYS = [
