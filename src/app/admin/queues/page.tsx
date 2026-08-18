@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 type Doctor = {
   id: string;
   specialization: string;
-  profiles: { full_name: string };
+  profiles: { full_name: string }[] | { full_name: string };
 };
 type Queue = {
   id: string;
