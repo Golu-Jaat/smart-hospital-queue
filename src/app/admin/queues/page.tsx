@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 type Doctor = {
   id: string;
   specialization: string;
-  profiles: { full_name: string }[] | { full_name: string };
+  profiles: { full_name: string };
 };
 type Queue = {
   id: string;
@@ -167,7 +167,10 @@ export default function AdminQueuesPage() {
               <option value="">Select Doctor</option>
               {doctors.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.profiles?.full_name} — {d.specialization}
+                  {Array.isArray(d.profiles)
+                    ? d.profiles[0]?.full_name
+                    : d.profiles?.full_name}{" "}
+                  — {d.specialization}
                 </option>
               ))}
             </select>
