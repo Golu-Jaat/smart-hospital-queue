@@ -77,6 +77,14 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </div>
+        <p className="text-right text-sm mb-2">
+          <Link
+            href="/forgot-password"
+            className="text-blue-600 hover:underline"
+          >
+            Forgot Password?
+          </Link>
+        </p>
         <p className="mt-4 text-center text-sm text-slate-500">
           New patient?{" "}
           <Link href="/signup" className="text-blue-700 hover:underline">

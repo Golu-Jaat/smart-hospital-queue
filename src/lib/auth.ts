@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
-import type { UserRole } from "@/types/database";
 
+// Signup
 export async function signUp(
   email: string,
   password: string,
@@ -17,22 +17,10 @@ export async function signUp(
       },
     },
   });
-
-  if (error || !data.user) {
-    return { data, error };
-  }
-
-  const { error: profileError } = await supabase.from("profiles").upsert({
-    id: data.user.id,
-    full_name: fullName,
-    email,
-    phone,
-    role: "patient" satisfies UserRole,
-  });
-
-  return { data, error: profileError };
+  return { data, error };
 }
 
+// Login
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -41,11 +29,13 @@ export async function signIn(email: string, password: string) {
   return { data, error };
 }
 
+// Logout
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   return { error };
 }
 
+// Get current user
 export async function getCurrentUser() {
   const {
     data: { user },
@@ -53,11 +43,28 @@ export async function getCurrentUser() {
   return user;
 }
 
+// Get user profile
 export async function getUserProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", userId)
     .single();
+  return { data, error };
+}
+
+// Forgot Password
+export async function forgotPassword(email: string) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  return { data, error };
+}
+
+// Reset Password
+export async function resetPassword(newPassword: string) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
   return { data, error };
 }
