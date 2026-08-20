@@ -128,6 +128,13 @@ function AppointmentsContent() {
           .from("queues")
           .update({ current_token_number: newToken })
           .eq("id", queue.id);
+        // Notification send karo
+        await supabase.from("notifications").insert({
+          patient_id: user.id,
+          message: `Your token #${newToken} has been booked successfully! Please wait for your turn.`,
+          type: "token_booked",
+          is_read: false,
+        });
 
         setSuccess(`Appointment booked! Token #${newToken}`);
 

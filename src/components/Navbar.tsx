@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NotificationBell } from "./NotificationBell";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
@@ -16,10 +17,15 @@ export function Navbar() {
         </Link>
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="hover:text-blue-700">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="hover:text-blue-700"
+            >
               {item.label}
             </Link>
           ))}
+          <NotificationBell />
         </div>
       </nav>
     </header>
