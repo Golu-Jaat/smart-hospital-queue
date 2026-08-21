@@ -100,16 +100,44 @@ function AppointmentsContent() {
     if (bookError) {
       setError(bookError.message);
     } else {
-      const { data: queue } = await supabase
+      const todayStr = new Date().toISOString().split("T")[0];
+      const isForToday = date === todayStr;
+
+      // Find or auto-initialize queue for doctor
+      let { data: queue } = await supabase
         .from("queues")
         .select("id, current_token_number")
         .eq("doctor_id", doctor.id)
         .eq("status", "active")
         .eq("queue_date", date)
-        .single();
+        .maybeSingle();
+
+      // If queue doesn't exist for today, automatically start it
+      if (!queue && isForToday) {
+        const { data: newQueue } = await supabase
+          .from("queues")
+          .insert({
+            doctor_id: doctor.id,
+            hospital_id: doctor.hospital_id,
+            department_id: doctor.department_id,
+            queue_date: date,
+            current_token_number: 0,
+            status: "active",
+          })
+          .select("id, current_token_number")
+          .single();
+
+        queue = newQueue;
+      }
 
       if (queue) {
-        const newToken = queue.current_token_number + 1;
+        // Count existing tokens in this queue to get accurate sequential number
+        const { count: tokenCount } = await supabase
+          .from("tokens")
+          .select("*", { count: "exact", head: true })
+          .eq("queue_id", queue.id);
+
+        const newToken = (tokenCount || 0) + 1;
 
         const { data: tokenData } = await supabase
           .from("tokens")
@@ -124,25 +152,22 @@ function AppointmentsContent() {
           .select()
           .single();
 
-        await supabase
-          .from("queues")
-          .update({ current_token_number: newToken })
-          .eq("id", queue.id);
         // Notification send karo
         await supabase.from("notifications").insert({
           patient_id: user.id,
-          message: `Your token #${newToken} has been booked successfully! Please wait for your turn.`,
+          message: `Your token #${newToken} has been generated successfully! You can track live queue status.`,
           type: "token_booked",
           is_read: false,
         });
 
-        setSuccess(`Appointment booked! Token #${newToken}`);
+        setSuccess(`Appointment confirmed! Token #${newToken} generated.`);
 
         if (tokenData?.id) {
           router.push(`/patient/queue/${tokenData.id}`);
+          return;
         }
       } else {
-        setSuccess("Appointment booked! Queue not started yet.");
+        setSuccess(`Appointment booked for ${date}! Your token will be activated on the appointment date.`);
       }
       setDate("");
       setTime("");
@@ -151,6 +176,10 @@ function AppointmentsContent() {
     setBooking(false);
   };
 
+  const docFullName = Array.isArray(doctor?.profiles)
+    ? doctor?.profiles[0]?.full_name
+    : doctor?.profiles?.full_name || doctor?.specialization || "Doctor";
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-3xl font-bold text-slate-950 dark:text-white">My Appointments</h1>
@@ -158,7 +187,7 @@ function AppointmentsContent() {
       {doctor && (
         <div className="mt-6 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-slate-800 p-6">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-            Book Appointment — {doctor.profiles?.full_name}
+            Book Appointment — {docFullName}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
             {doctor.specialization} • {doctor.departments?.name} •{" "}
@@ -210,35 +239,42 @@ function AppointmentsContent() {
           <p className="text-slate-500 dark:text-slate-400">No appointments yet.</p>
         ) : (
           <div className="grid gap-4">
-            {appointments.map((a) => (
-              <div
-                key={a.id}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 flex items-center justify-between"
-              >
-                <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-white">
-                    {a.doctors?.profiles?.full_name}
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {a.departments?.name} • {a.appointment_date} •{" "}
-                    {a.slot_start}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    a.status === "pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : a.status === "confirmed"
-                        ? "bg-green-100 text-green-700"
-                        : a.status === "completed"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-red-100 text-red-700"
-                  }`}
+            {appointments.map((a) => {
+              const docObj = a.doctors as any;
+              const docName = Array.isArray(docObj?.profiles)
+                ? docObj?.profiles[0]?.full_name
+                : docObj?.profiles?.full_name || docObj?.specialization || "Doctor";
+
+              return (
+                <div
+                  key={a.id}
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 flex items-center justify-between"
                 >
-                  {a.status}
-                </span>
-              </div>
-            ))}
+                  <div>
+                    <h3 className="font-semibold text-slate-800 dark:text-white">
+                      {docName}
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {a.departments?.name} • {a.appointment_date} •{" "}
+                      {a.slot_start}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      a.status === "pending"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : a.status === "confirmed"
+                          ? "bg-green-100 text-green-700"
+                          : a.status === "completed"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {a.status}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
