@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
-import { supabase } from "@/lib/supabase";
+import { supabase, createIsolatedClient } from "@/lib/supabase";
 
 type Hospital = { id: string; name: string };
 type Department = { id: string; name: string; hospital_id: string };
@@ -66,10 +66,17 @@ export default function AdminDoctorsPage() {
     setSaving(true);
     setError("");
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Create auth user using isolated client to protect admin session
+    const isolatedClient = createIsolatedClient();
+    const { data: authData, error: authError } = await isolatedClient.auth.signUp({
       email,
       password: "Doctor@123",
+      options: {
+        data: {
+          full_name: fullName,
+          role: "doctor",
+        },
+      },
     });
 
     if (authError || !authData.user) {

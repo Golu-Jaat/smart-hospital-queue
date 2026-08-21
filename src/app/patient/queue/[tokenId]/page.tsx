@@ -95,22 +95,22 @@ export default function QueueStatusPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
       <section className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-slate-950">Live Queue Status</h1>
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Live Queue Status</h1>
 
         {loading ? (
-          <p className="mt-6 text-slate-500">Loading...</p>
+          <p className="mt-6 text-slate-500 dark:text-slate-400">Loading...</p>
         ) : !token ? (
-          <p className="mt-6 text-slate-500">Token not found.</p>
+          <p className="mt-6 text-slate-500 dark:text-slate-400">Token not found.</p>
         ) : (
           <>
-            <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6">
+            <div className="mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Your Token</p>
-                  <p className="text-5xl font-bold text-blue-600">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Your Token</p>
+                  <p className="text-5xl font-bold text-blue-600 dark:text-blue-400">
                     #{token.token_number}
                   </p>
                 </div>
@@ -122,36 +122,36 @@ export default function QueueStatusPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-4 text-center">
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Now Serving</p>
-                  <p className="text-2xl font-bold text-slate-800">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Now Serving</p>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
                     #{token.queues?.current_token_number}
                   </p>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">People Ahead</p>
-                  <p className="text-2xl font-bold text-slate-800">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">People Ahead</p>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
                     {peopleAhead}
                   </p>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Est. Wait</p>
-                  <p className="text-2xl font-bold text-slate-800">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Est. Wait</p>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">
                     {estimatedWait()}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-slate-200 bg-white p-6">
-              <h2 className="font-semibold text-slate-800">Doctor Info</h2>
-              <p className="mt-2 text-slate-600">
+            <div className="mt-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
+              <h2 className="font-semibold text-slate-800 dark:text-white">Doctor Info</h2>
+              <p className="mt-2 text-slate-600 dark:text-slate-300">
                 {token.queues?.doctors?.profiles?.full_name}
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {token.queues?.doctors?.specialization}
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Room: {token.queues?.doctors?.room_number}
               </p>
             </div>

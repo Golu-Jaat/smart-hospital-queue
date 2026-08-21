@@ -33,16 +33,16 @@ export default function PatientHospitalsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
       <section className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-slate-950">Select Hospital</h1>
-        <p className="mt-2 text-slate-600">
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Select Hospital</h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">
           Choose a hospital to book appointment or get token.
         </p>
 
         {loading ? (
-          <p className="mt-6 text-slate-500">Loading...</p>
+          <p className="mt-6 text-slate-500 dark:text-slate-400">Loading...</p>
         ) : (
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {hospitals.map((h) => (
@@ -51,18 +51,18 @@ export default function PatientHospitalsPage() {
                 onClick={() =>
                   router.push(`/patient/doctors?hospitalId=${h.id}`)
                 }
-                className="rounded-lg border border-slate-200 bg-white p-5 text-left hover:border-blue-300 hover:shadow-md transition"
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-left hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition"
               >
                 <span
-                  className={`text-xs font-semibold px-2 py-1 rounded-full ${h.type === "government" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
+                  className={`text-xs font-semibold px-2 py-1 rounded-full ${h.type === "government" ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400" : "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"}`}
                 >
                   {h.type}
                 </span>
-                <h2 className="mt-3 font-semibold text-slate-950">{h.name}</h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <h2 className="mt-3 font-semibold text-slate-950 dark:text-white">{h.name}</h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                   {h.city} • {h.address}
                 </p>
-                <p className="mt-1 text-sm text-slate-500">{h.contact_phone}</p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{h.contact_phone}</p>
               </button>
             ))}
           </div>

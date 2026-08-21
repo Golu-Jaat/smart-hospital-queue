@@ -79,7 +79,7 @@ export function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-full hover:bg-slate-100 transition"
+        className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
       >
         <span className="text-xl">🔔</span>
         {unreadCount > 0 && (
@@ -90,13 +90,13 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50">
-          <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="font-semibold text-slate-800">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50">
+          <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+            <h3 className="font-semibold text-slate-800 dark:text-white">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-xs text-blue-600 hover:underline"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
               >
                 Mark all read
               </button>
@@ -114,7 +114,7 @@ export function NotificationBell() {
                 <div
                   key={n.id}
                   onClick={() => markAsRead(n.id)}
-                  className={`p-4 border-b cursor-pointer hover:bg-slate-50 transition ${!n.is_read ? "bg-blue-50" : ""}`}
+                  className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${!n.is_read ? "bg-blue-50/50 dark:bg-blue-950/30" : ""}`}
                 >
                   <div className="flex items-start gap-3">
                     <span
@@ -126,7 +126,7 @@ export function NotificationBell() {
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0"></span>
                     )}
                   </div>
-                  <p className="text-sm text-slate-700 mt-2">{n.message}</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-200 mt-2">{n.message}</p>
                   <p className="text-xs text-slate-400 mt-1">
                     {new Date(n.created_at).toLocaleString("en-IN")}
                   </p>
@@ -135,10 +135,10 @@ export function NotificationBell() {
             )}
           </div>
 
-          <div className="p-3 border-t text-center">
+          <div className="p-3 border-t border-slate-200 dark:border-slate-800 text-center">
             <button
               onClick={() => setOpen(false)}
-              className="text-xs text-slate-400 hover:text-slate-600"
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             >
               Close
             </button>

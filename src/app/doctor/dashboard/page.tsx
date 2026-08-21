@@ -100,49 +100,49 @@ export default function DoctorDashboardPage() {
   const completedCount = tokens.filter((t) => t.status === "completed").length;
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
       <section className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-slate-950">Doctor Dashboard</h1>
-        <p className="mt-1 text-slate-600">Welcome, {doctorName}</p>
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Doctor Dashboard</h1>
+        <p className="mt-1 text-slate-600 dark:text-slate-400">Welcome, {doctorName}</p>
 
         {loading ? (
-          <p className="mt-6 text-slate-500">Loading...</p>
+          <p className="mt-6 text-slate-500 dark:text-slate-400">Loading...</p>
         ) : !queue ? (
-          <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-            <p className="text-yellow-700">
+          <div className="mt-6 rounded-lg border border-yellow-200 dark:border-yellow-900/50 bg-yellow-50 dark:bg-yellow-950/30 p-6">
+            <p className="text-yellow-700 dark:text-yellow-400">
               No active queue for today. Ask admin to create one.
             </p>
           </div>
         ) : (
           <>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 bg-white p-5 text-center">
-                <p className="text-sm text-slate-500">Waiting</p>
-                <p className="text-3xl font-bold text-blue-600">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-center">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Waiting</p>
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {waitingTokens.length}
                 </p>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-5 text-center">
-                <p className="text-sm text-slate-500">Completed</p>
-                <p className="text-3xl font-bold text-green-600">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-center">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Completed</p>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {completedCount}
                 </p>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-5 text-center">
-                <p className="text-sm text-slate-500">Current Token</p>
-                <p className="text-3xl font-bold text-slate-800">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-center">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Current Token</p>
+                <p className="text-3xl font-bold text-slate-800 dark:text-white">
                   #{queue.current_token_number}
                 </p>
               </div>
             </div>
 
             {calledToken && (
-              <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-                <h2 className="font-semibold text-yellow-800">
+              <div className="mt-6 rounded-lg border border-yellow-200 dark:border-yellow-900/50 bg-yellow-50 dark:bg-yellow-950/30 p-6">
+                <h2 className="font-semibold text-yellow-800 dark:text-yellow-300">
                   Currently Serving
                 </h2>
-                <p className="text-2xl font-bold text-yellow-700 mt-1">
+                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400 mt-1">
                   #{calledToken.token_number} —{" "}
                   {calledToken.profiles?.full_name}
                 </p>
@@ -156,23 +156,23 @@ export default function DoctorDashboardPage() {
             )}
 
             <div className="mt-6">
-              <h2 className="text-xl font-semibold text-slate-800 mb-4">
+              <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">
                 Waiting Patients ({waitingTokens.length})
               </h2>
               {waitingTokens.length === 0 ? (
-                <p className="text-slate-500">No patients waiting.</p>
+                <p className="text-slate-500 dark:text-slate-400">No patients waiting.</p>
               ) : (
                 <div className="grid gap-3">
                   {waitingTokens.map((t, index) => (
                     <div
                       key={t.id}
-                      className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between"
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex items-center justify-between"
                     >
                       <div>
-                        <span className="font-bold text-slate-800">
+                        <span className="font-bold text-slate-800 dark:text-white">
                           #{t.token_number}
                         </span>
-                        <span className="ml-3 text-slate-600">
+                        <span className="ml-3 text-slate-600 dark:text-slate-300">
                           {t.profiles?.full_name}
                         </span>
                         {index === 0 && (

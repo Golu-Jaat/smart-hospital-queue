@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
+import { assessSymptoms } from "@/lib/ai";
 
 type Message = {
   role: "user" | "assistant";
@@ -67,13 +68,23 @@ export default function AIAssistantPage() {
       return;
     }
 
+    const runFallbackAssessment = () => {
+      const result = assessSymptoms(userMessage);
+      const fallbackText = `Based on your symptoms, we recommend visiting the **${result.recommended_department}** department.\n\n` +
+        `• **Reason:** ${result.reason}\n` +
+        `• **Urgency:** ${result.urgency.toUpperCase()}\n` +
+        `• **Suggested Next Step:** Go to the Doctors section to book an appointment or join the queue.\n\n` +
+        `*Disclaimer: I am an AI assistant and not a medical doctor. For urgent conditions, please visit the emergency room immediately.*`;
+      return fallbackText;
+    };
+
     if (!apiKey) {
+      const fallbackResponse = runFallbackAssessment();
       setMessages([
         ...newMessages,
         {
           role: "assistant",
-          content:
-            "API key missing. Please add NEXT_PUBLIC_GEMINI_API_KEY in .env.local and restart server.",
+          content: fallbackResponse,
         },
       ]);
       setLoading(false);
@@ -87,24 +98,22 @@ export default function AIAssistantPage() {
         .eq("is_active", true);
 
       const deptList =
-        departments?.map((d) => d.name).join(", ") || "General Medicine";
+        departments?.map((d) => d.name).join(", ") || "General Medicine, Cardiology, Orthopedics, Pediatrics, Dermatology";
 
-      const prompt = `You are a hospital AI assistant. Available departments: ${deptList}.
+      const prompt = `You are a helpful hospital AI assistant. Available departments: ${deptList}.
 Rules:
-1. Ask about symptoms, duration, severity
-2. Recommend department from available list only
-3. NEVER diagnose or prescribe medicine
-4. For emergencies say call 108/112
-5. Keep responses short and helpful
+1. Ask about symptoms, duration, and severity if needed.
+2. Recommend a suitable department from the available list.
+3. NEVER diagnose a disease or prescribe specific medicines/dosages.
+4. For emergency signs, immediately advise calling 108/112 or visiting the nearest emergency care.
+5. Keep responses concise, clear, and reassuring.
 6. End with: "Disclaimer: I am not a doctor."
-Respond in same language as patient.
+Respond in the same language as the patient.
 
 Patient says: ${userMessage}`;
 
-      console.log("Calling Gemini API...");
-
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -119,23 +128,20 @@ Patient says: ${userMessage}`;
         },
       );
 
-      console.log("Response status:", response.status);
       const data = await response.json();
-      console.log("Response data:", JSON.stringify(data).slice(0, 200));
 
-      if (data.error) {
+      if (data.error || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        // Use intelligent rule-based fallback if API quota or key fails
+        const fallbackMessage = runFallbackAssessment();
         setMessages([
           ...newMessages,
           {
             role: "assistant",
-            content: `API Error: ${data.error.message}`,
+            content: fallbackMessage,
           },
         ]);
       } else {
-        const assistantMessage =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "Sorry, I could not process your request. Please try again.";
-
+        const assistantMessage = data.candidates[0].content.parts[0].text;
         setMessages([
           ...newMessages,
           {
@@ -145,13 +151,13 @@ Patient says: ${userMessage}`;
         ]);
       }
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error("Fetch error, using fallback:", err);
+      const fallbackMessage = runFallbackAssessment();
       setMessages([
         ...newMessages,
         {
           role: "assistant",
-          content:
-            "Sorry, AI service is temporarily unavailable. Please contact hospital reception.",
+          content: fallbackMessage,
         },
       ]);
     }
@@ -160,24 +166,24 @@ Patient says: ${userMessage}`;
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
       <section className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-slate-950">AI Assistant</h1>
-        <p className="mt-2 text-slate-600">
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">AI Assistant</h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">
           Describe your symptoms to get department guidance.
         </p>
 
         {!apiKey && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-red-600 text-sm">
+          <div className="mt-4 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4">
+            <p className="text-red-600 dark:text-red-400 text-sm">
               API key missing! Add NEXT_PUBLIC_GEMINI_API_KEY in .env.local and
               restart server.
             </p>
           </div>
         )}
 
-        <div className="mt-6 rounded-lg border border-slate-200 bg-white">
+        <div className="mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
           <div className="h-96 overflow-y-auto p-6 space-y-4">
             {messages.map((m, i) => (
               <div
@@ -188,7 +194,7 @@ Patient says: ${userMessage}`;
                   className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg text-sm whitespace-pre-wrap ${
                     m.role === "user"
                       ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-800"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                   }`}
                 >
                   {m.content}
@@ -197,21 +203,21 @@ Patient says: ${userMessage}`;
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-slate-100 text-slate-500 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-4 py-3 rounded-lg text-sm">
                   Thinking...
                 </div>
               </div>
             )}
           </div>
 
-          <div className="border-t border-slate-200 p-4 flex gap-3">
+          <div className="border-t border-slate-200 dark:border-slate-700 p-4 flex gap-3">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !loading && sendMessage()}
               placeholder="Describe your symptoms..."
-              className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-slate-700 dark:text-white"
             />
             <button
               onClick={sendMessage}
@@ -223,7 +229,7 @@ Patient says: ${userMessage}`;
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-slate-400 text-center">
+        <p className="mt-4 text-xs text-slate-400 dark:text-slate-500 text-center">
           This AI assistant is for navigation only. It cannot diagnose or treat
           medical conditions.
         </p>

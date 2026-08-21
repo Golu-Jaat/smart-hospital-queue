@@ -9,3 +9,16 @@ export const supabase = createClient(
   supabaseUrl || "https://example.supabase.co",
   supabaseAnonKey || "public-anon-key",
 );
+
+export function createIsolatedClient() {
+  return createClient(
+    supabaseUrl || "https://example.supabase.co",
+    supabaseAnonKey || "public-anon-key",
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
+}

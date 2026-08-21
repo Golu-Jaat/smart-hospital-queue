@@ -39,15 +39,7 @@ export default function AdminDashboardPage() {
   const [tokenTrend, setTokenTrend] = useState<
     { time: string; tokens: number; completed: number }[]
   >([]);
-  const [recentTokens, setRecentTokens] = useState<
-    {
-      id: string;
-      token_number: number;
-      status: string;
-      profiles: { full_name: string };
-      queues: { doctors: { specialization: string } };
-    }[]
-  >([]);
+  const [recentTokens, setRecentTokens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -188,7 +180,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100">
+    <main className="min-h-screen bg-slate-100 dark:bg-slate-950 transition-colors">
       <Navbar />
       <div className="flex">
         {/* Sidebar */}
@@ -230,13 +222,13 @@ export default function AdminDashboardPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-              <p className="text-slate-500 text-sm">
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">
                 Monitor your queue system performance in real-time
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
                 {new Date().toLocaleDateString("en-IN", {
                   day: "2-digit",
                   month: "long",
@@ -275,13 +267,13 @@ export default function AdminDashboardPage() {
               {/* Charts Row */}
               <div className="grid lg:grid-cols-2 gap-6 mb-6">
                 {/* Line Chart */}
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h3 className="font-semibold text-slate-800 mb-4">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                  <h3 className="font-semibold text-slate-800 dark:text-white mb-4">
                     Tokens Overview
                   </h3>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={tokenTrend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                       <XAxis dataKey="time" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <Tooltip />
@@ -307,8 +299,8 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Pie Chart */}
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h3 className="font-semibold text-slate-800 mb-4">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                  <h3 className="font-semibold text-slate-800 dark:text-white mb-4">
                     Tokens by Department
                   </h3>
                   {departmentData.length > 0 ? (
@@ -336,7 +328,7 @@ export default function AdminDashboardPage() {
                   ) : (
                     <div className="h-48 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-4xl font-bold text-slate-300">
+                        <div className="text-4xl font-bold text-slate-300 dark:text-slate-600">
                           {stats.totalTokens}
                         </div>
                         <p className="text-slate-400 text-sm mt-2">
@@ -367,7 +359,7 @@ export default function AdminDashboardPage() {
                               <div
                                 className={`w-3 h-3 rounded-full ${item.color}`}
                               />
-                              <span className="text-slate-600">
+                              <span className="text-slate-600 dark:text-slate-300">
                                 {item.label}: {item.value}
                               </span>
                             </div>
@@ -382,19 +374,19 @@ export default function AdminDashboardPage() {
               {/* Bottom Row */}
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Live Queue Table */}
-                <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-slate-800">Live Queue</h3>
+                    <h3 className="font-semibold text-slate-800 dark:text-white">Live Queue</h3>
                     <Link
                       href="/admin/queues"
-                      className="text-blue-600 text-sm hover:underline"
+                      className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
                     >
                       View All
                     </Link>
                   </div>
                   <table className="w-full">
                     <thead>
-                      <tr className="text-left text-xs text-slate-500 border-b">
+                      <tr className="text-left text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         <th className="pb-2">Token No.</th>
                         <th className="pb-2">Patient</th>
                         <th className="pb-2">Department</th>
@@ -413,17 +405,25 @@ export default function AdminDashboardPage() {
                         </tr>
                       ) : (
                         recentTokens.map((t) => (
-                          <tr key={t.id} className="border-b last:border-0">
+                          <tr key={t.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
                             <td className="py-3">
                               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
                                 #{t.token_number}
                               </span>
                             </td>
-                            <td className="py-3 text-sm text-slate-700">
-                              {t.profiles?.full_name}
+                            <td className="py-3 text-sm text-slate-700 dark:text-slate-200">
+                              {Array.isArray(t.profiles)
+                                ? t.profiles[0]?.full_name
+                                : t.profiles?.full_name || "Patient"}
                             </td>
-                            <td className="py-3 text-sm text-slate-500">
-                              {t.queues?.doctors?.specialization}
+                            <td className="py-3 text-sm text-slate-500 dark:text-slate-400">
+                              {Array.isArray(t.queues)
+                                ? (Array.isArray(t.queues[0]?.doctors)
+                                    ? t.queues[0]?.doctors[0]?.specialization
+                                    : t.queues[0]?.doctors?.specialization)
+                                : (Array.isArray(t.queues?.doctors)
+                                    ? t.queues?.doctors[0]?.specialization
+                                    : t.queues?.doctors?.specialization) || "General"}
                             </td>
                             <td className="py-3">
                               <span
@@ -440,8 +440,8 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h3 className="font-semibold text-slate-800 mb-4">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                  <h3 className="font-semibold text-slate-800 dark:text-white mb-4">
                     System Overview
                   </h3>
                   <div className="space-y-4">
@@ -479,11 +479,11 @@ export default function AdminDashboardPage() {
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className="flex items-center justify-between py-2 border-b border-slate-50"
+                        className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800"
                       >
                         <div className="flex items-center gap-2">
                           <span>{item.icon}</span>
-                          <span className="text-sm text-slate-600">
+                          <span className="text-sm text-slate-600 dark:text-slate-300">
                             {item.label}
                           </span>
                         </div>

@@ -1,55 +1,49 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('theme')
-    if (saved === 'dark') {
-      applyDark()
-      setIsDark(true)
-    }
-  }, [])
-
-  const applyDark = () => {
-    document.body.style.backgroundColor = '#0f172a'
-    document.body.style.color = '#f8fafc'
-    document.querySelectorAll('.card-bg').forEach(el => {
-      (el as HTMLElement).style.backgroundColor = '#1e293b'
-      ;(el as HTMLElement).style.color = '#f8fafc'
-    })
-  }
-
-  const applyLight = () => {
-    document.body.style.backgroundColor = '#f8fafc'
-    document.body.style.color = '#0f172a'
-    document.querySelectorAll('.card-bg').forEach(el => {
-      (el as HTMLElement).style.backgroundColor = '#ffffff'
-      ;(el as HTMLElement).style.color = '#0f172a'
-    })
-  }
+    setMounted(true);
+    const hasDarkClass = document.documentElement.classList.contains('dark');
+    setIsDark(hasDarkClass);
+  }, []);
 
   const toggleTheme = () => {
-    if (isDark) {
-      applyLight()
-      localStorage.setItem('theme', 'light')
-      setIsDark(false)
+    const nextDark = !document.documentElement.classList.contains('dark');
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDark(true);
     } else {
-      applyDark()
-      localStorage.setItem('theme', 'dark')
-      setIsDark(true)
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      setIsDark(false);
     }
+  };
+
+  if (!mounted) {
+    return (
+      <button
+        aria-label="Toggle theme"
+        className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg leading-none"
+      >
+        🌙
+      </button>
+    );
   }
 
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-full hover:bg-slate-100 transition text-lg"
-      title="Toggle theme"
+      className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg leading-none flex items-center justify-center cursor-pointer"
+      title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      aria-label="Toggle theme"
     >
       {isDark ? '☀️' : '🌙'}
     </button>
-  )
+  );
 }

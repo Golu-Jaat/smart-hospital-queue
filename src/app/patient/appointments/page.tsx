@@ -153,39 +153,39 @@ function AppointmentsContent() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-slate-950">My Appointments</h1>
+      <h1 className="text-3xl font-bold text-slate-950 dark:text-white">My Appointments</h1>
 
       {doctor && (
-        <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-6">
-          <h2 className="text-lg font-semibold text-slate-800">
+        <div className="mt-6 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-slate-800 p-6">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
             Book Appointment — {doctor.profiles?.full_name}
           </h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
             {doctor.specialization} • {doctor.departments?.name} •{" "}
             {doctor.hospitals?.name} • Room {doctor.room_number}
           </p>
 
-          {error && <p className="mt-3 text-red-600 text-sm">{error}</p>}
-          {success && <p className="mt-3 text-green-600 text-sm">{success}</p>}
+          {error && <p className="mt-3 text-red-600 dark:text-red-400 text-sm">{error}</p>}
+          {success && <p className="mt-3 text-green-600 dark:text-green-400 text-sm">{success}</p>}
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm text-slate-600 mb-1 block">Date</label>
+              <label className="text-sm text-slate-600 dark:text-slate-300 mb-1 block">Date</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2"
               />
             </div>
             <div>
-              <label className="text-sm text-slate-600 mb-1 block">Time</label>
+              <label className="text-sm text-slate-600 dark:text-slate-300 mb-1 block">Time</label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2"
               />
             </div>
           </div>
@@ -201,25 +201,25 @@ function AppointmentsContent() {
       )}
 
       <div className="mt-8">
-        <h2 className="text-xl font-semibold text-slate-800 mb-4">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">
           Previous Appointments
         </h2>
         {loading ? (
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-slate-500 dark:text-slate-400">Loading...</p>
         ) : appointments.length === 0 ? (
-          <p className="text-slate-500">No appointments yet.</p>
+          <p className="text-slate-500 dark:text-slate-400">No appointments yet.</p>
         ) : (
           <div className="grid gap-4">
             {appointments.map((a) => (
               <div
                 key={a.id}
-                className="rounded-lg border border-slate-200 bg-white p-5 flex items-center justify-between"
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 flex items-center justify-between"
               >
                 <div>
-                  <h3 className="font-semibold text-slate-800">
+                  <h3 className="font-semibold text-slate-800 dark:text-white">
                     {a.doctors?.profiles?.full_name}
                   </h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {a.departments?.name} • {a.appointment_date} •{" "}
                     {a.slot_start}
                   </p>
@@ -248,9 +248,9 @@ function AppointmentsContent() {
 
 export default function PatientAppointmentsPage() {
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
-      <Suspense fallback={<p className="p-8 text-slate-500">Loading...</p>}>
+      <Suspense fallback={<p className="p-8 text-slate-500 dark:text-slate-400">Loading...</p>}>
         <AppointmentsContent />
       </Suspense>
     </main>
