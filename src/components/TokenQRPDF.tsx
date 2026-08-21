@@ -117,20 +117,23 @@ export function TokenQRPDF({
   });
 
   return (
-    <div className="mt-6">
-      {/* Visual Token Pass Card for Display */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-850 p-6 shadow-sm">
+    <div className="mt-6 perspective-1000">
+      {/* 3D Holographic Token Pass Card */}
+      <div className="hologram-card card-3d-hover rounded-3xl border border-slate-200 dark:border-slate-700/80 bg-gradient-to-br from-white via-slate-50 to-blue-50/40 dark:from-slate-800 dark:via-slate-850 dark:to-slate-900 p-6 sm:p-7 shadow-xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-6 border-b border-dashed border-slate-200 dark:border-slate-700">
           <div className="text-center sm:text-left flex-1">
             <div className="flex items-center gap-2 justify-center sm:justify-start">
-              <span className="text-xl">🏥</span>
+              <span className="text-xl animate-float-3d">🏥</span>
               <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                 Official Digital OPD Pass
               </span>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-              Token #{tokenNumber}
-            </h3>
+            <div className="flex items-center gap-3 justify-center sm:justify-start mt-2">
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight animate-gold-shimmer">
+                Token #{tokenNumber}
+              </h3>
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
               Patient: <strong className="text-slate-800 dark:text-slate-100">{patientName}</strong>
             </p>
@@ -142,9 +145,11 @@ export function TokenQRPDF({
             </p>
           </div>
 
-          {/* QR Code */}
+          {/* QR Code with 3D Border Glow */}
           <div className="text-center flex-shrink-0">
-            <SimpleQRMatrix data={qrPayload} />
+            <div className="p-1 rounded-2xl bg-white border border-slate-200 dark:border-slate-600 shadow-md">
+              <SimpleQRMatrix data={qrPayload} />
+            </div>
             <span className="text-[10px] text-slate-400 font-mono mt-1 block">
               Scan for Security Check
             </span>

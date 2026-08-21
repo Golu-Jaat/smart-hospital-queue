@@ -300,24 +300,31 @@ export default function WaitingRoomDisplayPage() {
             <span>{voiceLang === "en" ? "Voice: English" : "Voice: हिंदी"}</span>
           </button>
 
-          {/* Audio Enable Button */}
-          {!soundEnabled ? (
-            <button
-              onClick={handleEnableAudio}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 animate-bounce shadow-lg shadow-amber-500/20"
-            >
-              <span>🔈</span>
-              <span>Enable Audio</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setSoundEnabled(false)}
-              className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5"
-            >
-              <span>🔊</span>
-              <span>Audio Active</span>
-            </button>
-          )}
+          {/* Audio Enable & 3D Waveform Visualizer */}
+          <div className="flex items-center gap-2">
+            {!soundEnabled ? (
+              <button
+                onClick={handleEnableAudio}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 animate-bounce shadow-lg shadow-amber-500/20"
+              >
+                <span>🔈</span>
+                <span>Enable Audio</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setSoundEnabled(false)}
+                className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5"
+              >
+                <span>🔊 Audio Active</span>
+                <div className="flex items-end gap-0.5 h-4 ml-1">
+                  <span className="w-1 bg-emerald-400 rounded-full audio-bar-1" />
+                  <span className="w-1 bg-emerald-400 rounded-full audio-bar-2" />
+                  <span className="w-1 bg-emerald-400 rounded-full audio-bar-3" />
+                  <span className="w-1 bg-emerald-400 rounded-full audio-bar-4" />
+                </div>
+              </button>
+            )}
+          </div>
 
           {/* Fullscreen Button */}
           <button
@@ -336,8 +343,8 @@ export default function WaitingRoomDisplayPage() {
           </Link>
         </div>
 
-        {/* Live Clock */}
-        <div className="text-right bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700">
+        {/* Live Clock with 3D Border Glow */}
+        <div className="text-right bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 shadow-md">
           <p className="text-xl font-bold font-mono text-emerald-400 leading-none">
             {currentTime}
           </p>
@@ -347,28 +354,28 @@ export default function WaitingRoomDisplayPage() {
         </div>
       </header>
 
-      {/* Main Grid: Active Consultation Rooms */}
-      <main className="flex-1 p-6">
+      {/* Main Grid: Active Consultation Rooms with 3D Perspective */}
+      <main className="flex-1 p-6 perspective-1000">
         {filteredRooms.length === 0 ? (
           <div className="h-96 flex flex-col items-center justify-center text-center">
-            <span className="text-6xl mb-4">🏥</span>
+            <span className="text-6xl mb-4 animate-float-3d">🏥</span>
             <h2 className="text-2xl font-bold text-slate-300">No Active OPD Queues Today</h2>
             <p className="text-slate-500 text-sm mt-2">
               Queues created by hospital staff will appear here live.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 preserve-3d">
             {filteredRooms.map((room) => {
               const isNewlyCalled = room.currentTokenId && room.currentTokenId === recentCallId;
 
               return (
                 <div
                   key={room.queueId}
-                  className={`rounded-3xl p-6 border transition-all duration-300 relative overflow-hidden flex flex-col justify-between shadow-2xl ${
+                  className={`rounded-3xl p-6 border transition-all duration-500 relative overflow-hidden flex flex-col justify-between shadow-2xl ${
                     isNewlyCalled
-                      ? "bg-gradient-to-b from-blue-900/90 to-indigo-950 border-blue-400 shadow-blue-500/40 ring-4 ring-blue-500/50 scale-105"
-                      : "bg-slate-900/90 border-slate-800 hover:border-slate-700"
+                      ? "bg-gradient-to-b from-blue-900/95 via-indigo-950 to-slate-900 border-amber-400 shadow-2xl shadow-amber-500/40 ring-4 ring-amber-400/80 scale-105 animate-flip-3d"
+                      : "bg-slate-900/90 border-slate-800 hover:border-slate-700 card-3d-hover"
                   }`}
                 >
                   {/* Room Number & Dept Badge */}
@@ -389,15 +396,21 @@ export default function WaitingRoomDisplayPage() {
                     </div>
                   </div>
 
-                  {/* Giant Token Display */}
-                  <div className="my-6 py-5 px-4 bg-slate-950/80 rounded-2xl border border-slate-800 text-center shadow-inner">
+                  {/* Giant Token Display with 3D Glow */}
+                  <div className={`my-6 py-5 px-4 rounded-2xl border text-center shadow-inner transition-all ${
+                    isNewlyCalled
+                      ? "bg-gradient-to-b from-amber-500/20 to-amber-950/40 border-amber-500/50"
+                      : "bg-slate-950/80 border-slate-800"
+                  }`}>
                     <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-1">
                       Now Serving Token
                     </p>
                     <div className="flex items-center justify-center gap-2">
                       <span
                         className={`text-6xl font-black tracking-tight font-mono ${
-                          room.currentTokenNumber > 0 ? "text-amber-400" : "text-slate-600"
+                          isNewlyCalled
+                            ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-100 animate-pulse"
+                            : room.currentTokenNumber > 0 ? "text-amber-400" : "text-slate-600"
                         }`}
                       >
                         {room.currentTokenNumber > 0 ? `#${room.currentTokenNumber}` : "—"}

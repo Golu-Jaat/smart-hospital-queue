@@ -211,15 +211,30 @@ Patient says: ${userMessage}`;
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors relative overflow-hidden">
       <Navbar />
+
+      {/* Ambient background light */}
+      <div className="absolute top-20 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -z-10 animate-float-3d" />
+
       <section className="mx-auto max-w-3xl px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-950 dark:text-white">AI Symptom Assistant</h1>
-            <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
-              Describe your symptoms or speak using microphone to find the right department.
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+          <div className="flex items-center gap-3">
+            {/* 3D Floating AI Core Orb */}
+            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-500/30 transform transition-transform ${
+              isListening ? "scale-110 animate-pulse-ring" : "animate-float-3d"
+            }`}>
+              🤖
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white flex items-center gap-2">
+                AI Symptom Assistant
+                <span className="text-xs font-mono font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full">v2.0</span>
+              </h1>
+              <p className="mt-0.5 text-slate-600 dark:text-slate-400 text-xs sm:text-sm">
+                Describe your symptoms or speak using microphone for department triage.
+              </p>
+            </div>
           </div>
           {/* Language Selector for Speech */}
           <div className="flex items-center gap-1 self-start sm:self-auto">
