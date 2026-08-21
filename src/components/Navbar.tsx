@@ -12,6 +12,7 @@ const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
   { href: "/doctor/dashboard", label: "Doctor" },
   { href: "/admin/dashboard", label: "Admin" },
+  { href: "/display", label: "TV Display" },
   { href: "/ai-assistant", label: "AI Assistant" },
 ];
 

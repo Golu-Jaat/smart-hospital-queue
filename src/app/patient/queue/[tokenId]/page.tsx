@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
+import { TokenQRPDF } from "@/components/TokenQRPDF";
 
 type TokenData = {
   id: string;
@@ -172,6 +173,16 @@ export default function QueueStatusPage() {
                 </p>
               </div>
             )}
+
+            {/* Verifiable Digital QR Pass & PDF Slip */}
+            <TokenQRPDF
+              tokenId={token.id}
+              tokenNumber={token.token_number}
+              patientName={token.profiles?.full_name}
+              doctorName={token.queues?.doctors?.profiles?.full_name}
+              departmentName={token.queues?.doctors?.specialization}
+              roomNumber={token.queues?.doctors?.room_number}
+            />
           </>
         )}
       </section>

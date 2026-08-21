@@ -165,25 +165,96 @@ Patient says: ${userMessage}`;
     setLoading(false);
   };
 
+  const [isListening, setIsListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<"en-IN" | "hi-IN">("en-IN");
+
+  const startVoiceInput = () => {
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognitionClass =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) {
+      alert("Voice speech recognition is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionClass();
+      recognition.lang = voiceLang;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      setIsListening(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
       <section className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">AI Assistant</h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-400">
-          Describe your symptoms to get department guidance.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950 dark:text-white">AI Symptom Assistant</h1>
+            <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
+              Describe your symptoms or speak using microphone to find the right department.
+            </p>
+          </div>
+          {/* Language Selector for Speech */}
+          <div className="flex items-center gap-1 self-start sm:self-auto">
+            <button
+              onClick={() => setVoiceLang("en-IN")}
+              className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition ${
+                voiceLang === "en-IN"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setVoiceLang("hi-IN")}
+              className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition ${
+                voiceLang === "hi-IN"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              हिंदी (Hindi)
+            </button>
+          </div>
+        </div>
 
         {!apiKey && (
-          <div className="mt-4 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4">
-            <p className="text-red-600 dark:text-red-400 text-sm">
-              API key missing! Add NEXT_PUBLIC_GEMINI_API_KEY in .env.local and
-              restart server.
+          <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-3">
+            <p className="text-amber-800 dark:text-amber-300 text-xs">
+              ℹ️ Using Local Medical Rule Evaluator (Emergency detection & intelligent department triage active).
             </p>
           </div>
         )}
 
-        <div className="mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
           <div className="h-96 overflow-y-auto p-6 space-y-4">
             {messages.map((m, i) => (
               <div
@@ -191,10 +262,10 @@ Patient says: ${userMessage}`;
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg text-sm whitespace-pre-wrap ${
+                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${
                     m.role === "user"
                       ? "bg-blue-600 text-white"
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600"
                   }`}
                 >
                   {m.content}
@@ -203,26 +274,55 @@ Patient says: ${userMessage}`;
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-4 py-3 rounded-lg text-sm">
-                  Thinking...
+                <div className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-4 py-3 rounded-2xl text-sm animate-pulse">
+                  Thinking & evaluating medical guidelines...
                 </div>
               </div>
             )}
           </div>
 
-          <div className="border-t border-slate-200 dark:border-slate-700 p-4 flex gap-3">
+          {/* Voice Listening Active Banner */}
+          {isListening && (
+            <div className="bg-red-500/10 border-t border-red-500/20 px-4 py-2 flex items-center justify-between text-xs text-red-500 font-semibold animate-pulse">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                Listening in {voiceLang === "hi-IN" ? "हिंदी" : "English"}... Speak your symptoms now
+              </span>
+              <span>🎙️ Active</span>
+            </div>
+          )}
+
+          <div className="border-t border-slate-200 dark:border-slate-700 p-4 flex items-center gap-2">
+            {/* Mic Button */}
+            <button
+              onClick={startVoiceInput}
+              disabled={loading}
+              title={`Click to Speak (${voiceLang === "hi-IN" ? "Hindi" : "English"})`}
+              className={`p-2.5 rounded-xl border transition flex items-center justify-center text-lg ${
+                isListening
+                  ? "bg-red-500 text-white border-red-600 animate-pulse shadow-lg shadow-red-500/30"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              🎙️
+            </button>
+
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !loading && sendMessage()}
-              placeholder="Describe your symptoms..."
-              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-slate-700 dark:text-white"
+              placeholder={
+                voiceLang === "hi-IN"
+                  ? "अपने लक्षण लिखें या 🎙️ माइक दबाकर बोलें..."
+                  : "Type symptoms or press 🎙️ mic to speak..."
+              }
+              className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-slate-700 dark:text-white"
             />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
-              className="rounded-lg bg-blue-700 px-4 py-2 text-white text-sm hover:bg-blue-800 disabled:bg-slate-300"
+              className="rounded-xl bg-blue-600 px-5 py-2.5 text-white text-sm font-semibold hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 shadow-sm transition"
             >
               Send
             </button>
@@ -230,8 +330,7 @@ Patient says: ${userMessage}`;
         </div>
 
         <p className="mt-4 text-xs text-slate-400 dark:text-slate-500 text-center">
-          This AI assistant is for navigation only. It cannot diagnose or treat
-          medical conditions.
+          This AI assistant is for OPD navigation only. It cannot diagnose or treat emergencies.
         </p>
       </section>
     </main>
