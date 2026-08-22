@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { AccessGuard } from "@/components/AccessGuard";
+import { playChime } from "@/lib/sound";
 
 type Token = {
   id: string;
@@ -12,73 +13,232 @@ type Token = {
   priority: string;
   joined_at: string;
   queue_id: string;
-  profiles: { full_name: string; phone: string };
+  profiles?: { full_name?: string; phone?: string };
+};
+
+type DoctorInfo = {
+  id: string;
+  specialization: string;
+  room_number: string;
+  average_consultation_minutes: number;
+  profile_id?: string;
+  profiles?: { full_name?: string };
+  hospitals?: { name?: string };
+  departments?: { name?: string };
 };
 
 type Queue = {
   id: string;
+  doctor_id: string;
   current_token_number: number;
   status: string;
   queue_date: string;
 };
 
 export default function DoctorDashboardPage() {
+  const [doctorsList, setDoctorsList] = useState<DoctorInfo[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
+  const [selectedDoctor, setSelectedDoctor] = useState<DoctorInfo | null>(null);
   const [queue, setQueue] = useState<Queue | null>(null);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
-  const [doctorName, setDoctorName] = useState("");
+  const [startingQueue, setStartingQueue] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Modals & Broadcast
+  const [delayMinutes, setDelayMinutes] = useState<number>(0);
+  const [delayReason, setDelayReason] = useState<string>("");
+  const [showDelayModal, setShowDelayModal] = useState<boolean>(false);
+  const [consultNotes, setConsultNotes] = useState<string>("");
+  const [completingTokenId, setCompletingTokenId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    initDoctorDashboard();
   }, []);
 
-  const fetchData = async () => {
+  const initDoctorDashboard = async () => {
     setLoading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
-    setDoctorName(profile?.full_name || "");
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-    const { data: doctor } = await supabase
-      .from("doctors")
-      .select("id")
-      .eq("profile_id", user.id)
-      .single();
-
-    if (doctor) {
-      const today = new Date().toISOString().split("T")[0];
-      const { data: q } = await supabase
-        .from("queues")
-        .select("*")
-        .eq("doctor_id", doctor.id)
-        .eq("queue_date", today)
-        .eq("status", "active")
+      // Fetch user profile
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
         .single();
 
-      setQueue(q);
+      setUserName(userProfile?.full_name || "Doctor");
+      const userIsAdmin = userProfile?.role === "admin";
+      setIsAdmin(userIsAdmin);
 
-      if (q) {
-        const { data: t } = await supabase
-          .from("tokens")
-          .select("*, profiles(full_name, phone)")
-          .eq("queue_id", q.id)
-          .order("token_number");
-        setTokens(t || []);
+      // Fetch all active doctors with department and hospital
+      const { data: allDoctors } = await supabase
+        .from("doctors")
+        .select("id, specialization, room_number, average_consultation_minutes, profile_id, profiles(full_name), hospitals(name), departments(name)")
+        .eq("is_active", true);
+
+      const docs = (allDoctors || []) as unknown as DoctorInfo[];
+      setDoctorsList(docs);
+
+      // Check if logged in user is linked to a doctor
+      let targetDoctor = docs.find((d) => d.profile_id === user.id);
+      if (!targetDoctor && docs.length > 0) {
+        targetDoctor = docs[0]; // Default to first doctor if admin or unlinked
       }
+
+      if (targetDoctor) {
+        setSelectedDoctorId(targetDoctor.id);
+        setSelectedDoctor(targetDoctor);
+        await loadDoctorQueue(targetDoctor.id);
+      }
+    } catch (err) {
+      console.error("Error loading doctor dashboard:", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const loadDoctorQueue = async (doctorId: string) => {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: q } = await supabase
+      .from("queues")
+      .select("*")
+      .eq("doctor_id", doctorId)
+      .eq("queue_date", today)
+      .eq("status", "active")
+      .maybeSingle();
+
+    setQueue(q);
+
+    if (q) {
+      const { data: t } = await supabase
+        .from("tokens")
+        .select("*, profiles(full_name, phone)")
+        .eq("queue_id", q.id)
+        .order("token_number");
+      setTokens(t || []);
+    } else {
+      setTokens([]);
+    }
+  };
+
+  // Real-time Supabase Subscription
+  useEffect(() => {
+    if (!queue?.id) return;
+
+    const channel = supabase
+      .channel(`doctor_queue_${queue.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tokens",
+          filter: `queue_id=eq.${queue.id}`,
+        },
+        () => {
+          if (selectedDoctorId) loadDoctorQueue(selectedDoctorId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queue?.id, selectedDoctorId]);
+
+  const handleDoctorChange = async (doctorId: string) => {
+    setSelectedDoctorId(doctorId);
+    const doc = doctorsList.find((d) => d.id === doctorId) || null;
+    setSelectedDoctor(doc);
+    setLoading(true);
+    await loadDoctorQueue(doctorId);
     setLoading(false);
   };
 
+  // 1-Click: Start / Create Today's OPD Queue
+  const handleStartTodayQueue = async () => {
+    if (!selectedDoctor) return;
+    setStartingQueue(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+
+      // Fetch doctor details to get hospital_id and department_id
+      const { data: docRow } = await supabase
+        .from("doctors")
+        .select("hospital_id, department_id")
+        .eq("id", selectedDoctor.id)
+        .single();
+
+      const { data: newQueue, error } = await supabase
+        .from("queues")
+        .insert({
+          doctor_id: selectedDoctor.id,
+          hospital_id: docRow?.hospital_id,
+          department_id: docRow?.department_id,
+          queue_date: today,
+          status: "active",
+          current_token_number: 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setQueue(newQueue);
+      await loadDoctorQueue(selectedDoctor.id);
+    } catch (err: any) {
+      alert("Error starting queue: " + err.message);
+    } finally {
+      setStartingQueue(false);
+    }
+  };
+
+  // Generate Sample Patient Tokens for Testing
+  const handleGenerateSampleTokens = async () => {
+    if (!queue) return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const nextTokenNum = tokens.length + 1;
+      const sampleNames = ["Amit Verma", "Sunita Devi", "Rohan Mehta"];
+      const priorities = ["emergency", "senior", "regular"];
+
+      for (let i = 0; i < 3; i++) {
+        await supabase.from("tokens").insert({
+          queue_id: queue.id,
+          patient_id: user?.id,
+          token_number: nextTokenNum + i,
+          status: "waiting",
+          priority: priorities[i % 3],
+          estimated_wait_minutes: (i + 1) * 15,
+        });
+      }
+
+      await loadDoctorQueue(selectedDoctorId);
+    } catch (err: any) {
+      alert("Error adding sample tokens: " + err.message);
+    }
+  };
+
   const updateToken = async (id: string, status: string) => {
-    const updates: Record<string, string> = { status };
-    if (status === "called") updates.called_at = new Date().toISOString();
+    const updates: Record<string, any> = { status };
+    if (status === "called") {
+      updates.called_at = new Date().toISOString();
+      playChime();
+    }
     if (status === "completed") updates.completed_at = new Date().toISOString();
     if (status === "skipped") updates.skipped_at = new Date().toISOString();
 
@@ -93,17 +253,11 @@ export default function DoctorDashboardPage() {
           .eq("id", queue.id);
       }
     }
-    fetchData();
-  };
 
-  const waitingTokens = tokens.filter((t) => t.status === "waiting");
-  const calledToken = tokens.find((t) => t.status === "called");
-  const completedCount = tokens.filter((t) => t.status === "completed").length;
-  const [delayMinutes, setDelayMinutes] = useState<number>(0);
-  const [delayReason, setDelayReason] = useState<string>("");
-  const [showDelayModal, setShowDelayModal] = useState<boolean>(false);
-  const [consultNotes, setConsultNotes] = useState<string>("");
-  const [completingTokenId, setCompletingTokenId] = useState<string | null>(null);
+    if (selectedDoctorId) {
+      await loadDoctorQueue(selectedDoctorId);
+    }
+  };
 
   const setDoctorDelay = (mins: number, reason: string) => {
     setDelayMinutes(mins);
@@ -118,254 +272,376 @@ export default function DoctorDashboardPage() {
     setConsultNotes("");
   };
 
+  const waitingTokens = tokens.filter((t) => t.status === "waiting");
+  const calledToken = tokens.find((t) => t.status === "called");
+  const completedCount = tokens.filter((t) => t.status === "completed").length;
+
+  const docName = Array.isArray(selectedDoctor?.profiles)
+    ? selectedDoctor?.profiles[0]?.full_name
+    : selectedDoctor?.profiles?.full_name || selectedDoctor?.specialization || "Doctor";
+
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors pb-16">
       <Navbar />
       <AccessGuard requiredRole="doctor">
-        <section className="mx-auto max-w-4xl px-4 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="mx-auto max-w-5xl px-4 py-8">
+          {/* Header & Doctor Cabin Switcher */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
             <div>
-              <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Doctor Dashboard</h1>
-              <p className="mt-1 text-slate-600 dark:text-slate-400">Welcome, {doctorName}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">👨‍⚕️</span>
+                <h1 className="text-3xl font-black text-slate-950 dark:text-white">
+                  Doctor OPD Cabin
+                </h1>
+              </div>
+              <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
+                Logged in as <strong className="text-slate-900 dark:text-white">{userName}</strong>
+                {isAdmin && <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400">Super Admin Access</span>}
+              </p>
             </div>
+
+            {/* Doctor / Cabin Dropdown Selector */}
+            {doctorsList.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">
+                  Select Cabin:
+                </span>
+                <select
+                  value={selectedDoctorId}
+                  onChange={(e) => handleDoctorChange(e.target.value)}
+                  className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  {doctorsList.map((d) => {
+                    const name = Array.isArray(d.profiles) ? d.profiles[0]?.full_name : d.profiles?.full_name;
+                    return (
+                      <option key={d.id} value={d.id}>
+                        👨‍⚕️ {name || "Doctor"} — {d.specialization} (Room {d.room_number || "OPD"})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+          </div>
 
           {/* Delay Broadcast Controls */}
           {queue && (
-            <div className="flex items-center gap-2">
-              {delayMinutes > 0 ? (
-                <div className="flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold">
-                  <span>⚠️ Delay: +{delayMinutes}m ({delayReason})</span>
-                  <button
-                    onClick={() => setDoctorDelay(0, "")}
-                    className="ml-2 hover:text-white font-bold"
-                  >
-                    ✕ Clear
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowDelayModal(true)}
-                  className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 px-3 py-1.5 rounded-xl text-xs font-semibold transition"
-                >
-                  ⏱️ Broadcast Delay
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Delay Selector Modal */}
-        {showDelayModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700 shadow-2xl">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Broadcast OPD Delay</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Patients in queue will automatically be notified of updated estimated wait time.
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {[
-                  { mins: 15, label: "+15 min (Minor Delay)" },
-                  { mins: 30, label: "+30 min (Ward Visit)" },
-                  { mins: 45, label: "+45 min (Emergency Case)" },
-                  { mins: 60, label: "+60 min (Surgery)" },
-                ].map((item) => (
-                  <button
-                    key={item.mins}
-                    onClick={() => setDoctorDelay(item.mins, item.label.split(" ")[1])}
-                    className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-slate-600 hover:border-amber-400 rounded-xl text-xs font-semibold text-left transition"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setShowDelayModal(false)}
-                className="mt-4 w-full py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Consultation Notes Modal */}
-        {completingTokenId && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Complete Consultation</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Add optional consultation notes or prescription advice for patient pass.
-              </p>
-              <textarea
-                value={consultNotes}
-                onChange={(e) => setConsultNotes(e.target.value)}
-                placeholder="Prescription / Advice (e.g. Paracetamol 500mg TDS, Rest for 3 days)..."
-                className="w-full mt-3 p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-sm outline-none focus:border-blue-500"
-                rows={4}
-              />
-              <div className="mt-4 flex gap-2 justify-end">
-                <button
-                  onClick={() => setCompletingTokenId(null)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCompleteWithNotes}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold"
-                >
-                  Confirm & Complete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <p className="mt-6 text-slate-500 dark:text-slate-400">Loading...</p>
-        ) : !queue ? (
-          <div className="mt-6 rounded-lg border border-yellow-200 dark:border-yellow-900/50 bg-yellow-50 dark:bg-yellow-950/30 p-6">
-            <p className="text-yellow-700 dark:text-yellow-400">
-              No active queue for today. Ask admin to create one.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">Waiting</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  {waitingTokens.length}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">Completed</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  {completedCount}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">Current Token</p>
-                <p className="text-3xl font-bold text-slate-800 dark:text-white">
-                  #{queue.current_token_number}
-                </p>
-              </div>
-            </div>
-
-            {calledToken && (
-              <div className="mt-6 rounded-2xl border border-yellow-200 dark:border-yellow-900/50 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/20 p-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-semibold text-yellow-800 dark:text-yellow-300">
-                    Currently In Room (Serving)
-                  </h2>
-                  <span className="bg-yellow-400 text-yellow-950 text-xs px-2.5 py-0.5 rounded-full font-bold animate-pulse">
-                    IN PROGRESS
-                  </span>
-                </div>
-                <p className="text-2xl font-black text-yellow-800 dark:text-yellow-300 mt-2 font-mono">
-                  Token #{calledToken.token_number} —{" "}
-                  <span className="font-sans font-bold">{calledToken.profiles?.full_name}</span>
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => setCompletingTokenId(calledToken.id)}
-                    className="rounded-xl bg-green-600 px-5 py-2.5 text-white font-semibold text-sm hover:bg-green-700 shadow-sm"
-                  >
-                    ✅ Complete Consultation
-                  </button>
-                  <button
-                    onClick={() => updateToken(calledToken.id, "skipped")}
-                    className="rounded-xl bg-slate-200 dark:bg-slate-700 px-4 py-2.5 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-300 dark:hover:bg-slate-600"
-                  >
-                    Skip
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-                  Waiting Patients ({waitingTokens.length})
-                </h2>
-                <span className="text-xs text-slate-500">
-                  Priority cases can be called immediately
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-bold text-slate-800 dark:text-white">
+                  OPD Cabin Active (Room {selectedDoctor?.room_number || "4"})
+                </span>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-500 dark:text-slate-400">
+                  {selectedDoctor?.specialization}
                 </span>
               </div>
 
-              {waitingTokens.length === 0 ? (
-                <p className="text-slate-500 dark:text-slate-400 py-6 text-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                  No patients waiting in queue.
+              <div className="flex items-center gap-2">
+                {delayMinutes > 0 ? (
+                  <div className="flex items-center gap-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold">
+                    <span>⚠️ Delay: +{delayMinutes}m ({delayReason})</span>
+                    <button
+                      onClick={() => setDoctorDelay(0, "")}
+                      className="ml-1 hover:text-slate-900 dark:hover:text-white font-bold"
+                    >
+                      ✕ Clear
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowDelayModal(true)}
+                    className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 px-3.5 py-1.5 rounded-xl text-xs font-bold transition"
+                  >
+                    ⏱️ Broadcast OPD Delay
+                  </button>
+                )}
+
+                <button
+                  onClick={handleGenerateSampleTokens}
+                  className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition"
+                >
+                  ➕ Add 3 Test Patients
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Delay Selector Modal */}
+          {showDelayModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700 shadow-2xl">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Broadcast OPD Delay</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Waiting patients & TV Display will immediately show updated wait times.
                 </p>
-              ) : (
-                <div className="grid gap-3">
-                  {waitingTokens.map((t, index) => {
-                    const isPriority = t.priority && t.priority !== "normal";
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {[
+                    { mins: 15, label: "+15 min (Minor Delay)" },
+                    { mins: 30, label: "+30 min (Ward Round)" },
+                    { mins: 45, label: "+45 min (Emergency)" },
+                    { mins: 60, label: "+60 min (OT Surgery)" },
+                  ].map((item) => (
+                    <button
+                      key={item.mins}
+                      onClick={() => setDoctorDelay(item.mins, item.label.split(" ")[1])}
+                      className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-slate-600 hover:border-amber-400 rounded-xl text-xs font-semibold text-left transition"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowDelayModal(false)}
+                  className="mt-4 w-full py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
-                    return (
-                      <div
-                        key={t.id}
-                        className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition shadow-sm ${
-                          isPriority
-                            ? "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50"
-                            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono font-black text-lg text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-700/60 px-3 py-1.5 rounded-xl">
-                            #{t.token_number}
+          {/* Consultation Notes Modal */}
+          {completingTokenId && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Complete Consultation</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Add optional prescription notes / advice for patient's digital record.
+                </p>
+                <textarea
+                  value={consultNotes}
+                  onChange={(e) => setConsultNotes(e.target.value)}
+                  placeholder="Prescription / Advice (e.g. Tab Paracetamol 650mg TDS, follow up in 3 days)..."
+                  className="w-full mt-3 p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-sm outline-none focus:border-blue-500"
+                  rows={4}
+                />
+                <div className="mt-4 flex gap-2 justify-end">
+                  <button
+                    onClick={() => setCompletingTokenId(null)}
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCompleteWithNotes}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold shadow-md"
+                  >
+                    Confirm & Finish
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Dashboard States */}
+          {loading ? (
+            <div className="py-20 text-center text-slate-500 dark:text-slate-400 animate-pulse">
+              Loading doctor cabin information...
+            </div>
+          ) : !queue ? (
+            /* Empty Queue State with 1-Click Initialize */
+            <div className="mt-8 rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-slate-900/5 dark:bg-slate-900 p-8 sm:p-12 text-center shadow-lg">
+              <div className="w-16 h-16 rounded-3xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-3xl flex items-center justify-center mx-auto mb-4">
+                🩺
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                Queue Not Started for Today
+              </h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                Cabin for <strong>{docName}</strong> ({selectedDoctor?.specialization}) is ready. Click below to start today's active OPD queue!
+              </p>
+
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={handleStartTodayQueue}
+                  disabled={startingQueue}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-sm shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                >
+                  {startingQueue ? "Starting Queue..." : "⚡ Start Today's OPD Queue"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Active Live OPD Queue Console */
+            <>
+              {/* Top Stats Cards */}
+              <div className="mt-6 grid gap-4 grid-cols-3">
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-center shadow-sm">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Waiting
+                  </p>
+                  <p className="text-3xl font-black text-blue-600 dark:text-blue-400 mt-1 font-mono">
+                    {waitingTokens.length}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-center shadow-sm">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Completed
+                  </p>
+                  <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+                    {completedCount}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-center shadow-sm">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Current Token
+                  </p>
+                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-1 font-mono">
+                    #{queue.current_token_number}
+                  </p>
+                </div>
+              </div>
+
+              {/* Now Calling Banner */}
+              {calledToken ? (
+                <div className="mt-6 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white shadow-xl relative overflow-hidden">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 uppercase tracking-wider">
+                          Now Inside Cabin
+                        </span>
+                        {calledToken.priority === "emergency" && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white animate-pulse">
+                            🚨 Emergency
                           </span>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-slate-800 dark:text-white">
-                                {t.profiles?.full_name}
-                              </p>
-                              {t.priority === "emergency" && (
-                                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  🚨 EMERGENCY
-                                </span>
-                              )}
-                              {t.priority === "senior_citizen" && (
-                                <span className="bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  👵 SENIOR CITIZEN
-                                </span>
-                              )}
-                              {index === 0 && !isPriority && (
-                                <span className="bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  NEXT
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              Joined: {new Date(t.joined_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateToken(t.id, "called")}
-                            className="rounded-xl px-4 py-2 text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
-                          >
-                            Call Patient →
-                          </button>
-                          <button
-                            onClick={() => updateToken(t.id, "skipped")}
-                            className="rounded-xl px-3 py-2 text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                          >
-                            Skip
-                          </button>
-                        </div>
+                        )}
                       </div>
-                    );
-                  })}
+                      <h2 className="text-4xl font-black mt-2 font-mono">
+                        Token #{calledToken.token_number}
+                      </h2>
+                      <p className="text-sm text-blue-100 mt-1">
+                        Patient: <strong>{calledToken.profiles?.full_name || "Patient"}</strong> • {calledToken.profiles?.phone || "No phone"}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={() => setCompletingTokenId(calledToken.id)}
+                        className="flex-1 sm:flex-none rounded-2xl bg-emerald-500 hover:bg-emerald-600 px-6 py-3 font-bold text-sm transition shadow-lg"
+                      >
+                        ✓ Done (Complete)
+                      </button>
+                      <button
+                        onClick={() => updateToken(calledToken.id, "skipped")}
+                        className="rounded-2xl bg-white/20 hover:bg-white/30 px-4 py-3 text-xs font-semibold transition"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 text-center shadow-sm">
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    No patient is currently inside the cabin. Call the next token below!
+                  </p>
                 </div>
               )}
-            </div>
-          </>
-        )}
-      </section>
-    </AccessGuard>
-  </main>
-);
+
+              {/* Waiting Tokens Queue List */}
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                    Waiting Patients ({waitingTokens.length})
+                  </h2>
+                  <button
+                    onClick={() => selectedDoctorId && loadDoctorQueue(selectedDoctorId)}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                  >
+                    🔄 Refresh List
+                  </button>
+                </div>
+
+                {waitingTokens.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-8 text-center bg-white/50 dark:bg-slate-900/50">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">
+                      Waiting queue is empty.
+                    </p>
+                    <button
+                      onClick={handleGenerateSampleTokens}
+                      className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                    >
+                      ➕ Add 3 Test Patients to Queue
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {waitingTokens.map((t) => {
+                      const isEmergency = t.priority === "emergency";
+                      const isSenior = t.priority === "senior";
+
+                      return (
+                        <div
+                          key={t.id}
+                          className={`rounded-2xl border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
+                            isEmergency
+                              ? "bg-red-500/10 border-red-500/30"
+                              : isSenior
+                              ? "bg-purple-500/10 border-purple-500/30"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-lg shadow-sm ${
+                                isEmergency
+                                  ? "bg-red-600 text-white"
+                                  : isSenior
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400"
+                              }`}
+                            >
+                              #{t.token_number}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                                  {t.profiles?.full_name || "Patient"}
+                                </h3>
+                                {isEmergency && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white animate-pulse">
+                                    🚨 Urgent
+                                  </span>
+                                )}
+                                {isSenior && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-600 text-white">
+                                    👵 Senior
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-400">
+                                Phone: {t.profiles?.phone || "N/A"} • Joined: {new Date(t.joined_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <button
+                              onClick={() => updateToken(t.id, "called")}
+                              className="flex-1 sm:flex-none rounded-xl px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm"
+                            >
+                              Call Patient →
+                            </button>
+                            <button
+                              onClick={() => updateToken(t.id, "skipped")}
+                              className="rounded-xl px-3 py-2 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </AccessGuard>
+    </main>
+  );
 }
