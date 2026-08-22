@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
-import { SmartQueueLogo } from "./SmartQueueLogo";
+import { SmartQueueLogo, LogoVariant } from "./SmartQueueLogo";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
@@ -24,6 +24,7 @@ export function Navbar() {
   const [userRole, setUserRole] = useState("patient");
   const [userAvatar, setUserAvatar] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [logoVariant, setLogoVariant] = useState<LogoVariant>("pulse-cross");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -65,13 +66,24 @@ export function Navbar() {
   useEffect(() => {
     fetchUserData();
 
-    // Listen for profile changes from Profile page
-    const handleProfileUpdate = () => {
-      fetchUserData();
+    // Check saved logo variant
+    const checkLogo = () => {
+      const saved = localStorage.getItem("selected_logo_variant") as LogoVariant;
+      if (saved && ["pulse-cross", "smart-shield", "infinity-flow", "token-hex"].includes(saved)) {
+        setLogoVariant(saved);
+      }
     };
+    checkLogo();
 
+    // Listen for profile changes and logo changes
+    const handleProfileUpdate = () => fetchUserData();
     window.addEventListener("profileUpdated", handleProfileUpdate);
-    return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
+    window.addEventListener("logoChanged", checkLogo);
+
+    return () => {
+      window.removeEventListener("profileUpdated", handleProfileUpdate);
+      window.removeEventListener("logoChanged", checkLogo);
+    };
   }, []);
 
   // Close dropdown on click outside
@@ -112,7 +124,7 @@ export function Navbar() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <SmartQueueLogo size={38} />
+          <SmartQueueLogo size={38} variant={logoVariant} />
           <div>
             <p className="font-black text-slate-800 dark:text-white text-base tracking-tight leading-tight">
               Smart<span className="text-blue-600 dark:text-blue-400">Queue</span>
