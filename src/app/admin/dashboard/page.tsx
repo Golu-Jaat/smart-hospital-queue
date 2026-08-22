@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
+import { AccessGuard } from "@/components/AccessGuard";
 import Link from "next/link";
 import {
   LineChart,
@@ -182,8 +183,9 @@ export default function AdminDashboardPage() {
   return (
     <main className="min-h-screen bg-slate-100 dark:bg-slate-950 transition-colors">
       <Navbar />
-      <div className="flex">
-        {/* Sidebar */}
+      <AccessGuard requiredRole="admin">
+        <div className="flex">
+          {/* Sidebar */}
         <aside className="w-64 min-h-screen bg-blue-900 text-white p-4 hidden lg:block">
           <div className="mb-8">
             <h2 className="text-xl font-bold">Smart Hospital</h2>
@@ -508,6 +510,7 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
-    </main>
-  );
+    </AccessGuard>
+  </main>
+);
 }

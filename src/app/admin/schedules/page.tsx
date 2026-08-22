@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
+import { AccessGuard } from "@/components/AccessGuard";
 
 type Doctor = {
   id: string;
@@ -88,7 +89,8 @@ export default function AdminSchedulesPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <Navbar />
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      <AccessGuard requiredRole="admin">
+        <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-slate-950">
             Schedule Management
@@ -190,6 +192,7 @@ export default function AdminSchedulesPage() {
           )}
         </div>
       </section>
-    </main>
-  );
+    </AccessGuard>
+  </main>
+);
 }

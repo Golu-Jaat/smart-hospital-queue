@@ -91,6 +91,21 @@ export function Navbar() {
     router.push("/login");
   };
 
+  const getFilteredNavItems = () => {
+    return navItems.filter((item) => {
+      if (item.href.startsWith("/admin")) {
+        return isLoggedIn && userRole === "admin";
+      }
+      if (item.href.startsWith("/doctor")) {
+        return isLoggedIn && (userRole === "doctor" || userRole === "admin");
+      }
+      if (item.href.startsWith("/patient")) {
+        return true;
+      }
+      return true; // TV Display and AI Assistant are public
+    });
+  };
+
   return (
     <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm sticky top-0 z-40 transition-colors">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -107,9 +122,9 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Nav Links */}
+        {/* Dynamic Role-Based Nav Links */}
         <div className="hidden md:flex items-center gap-1">
-          {navItems.map((item) => (
+          {getFilteredNavItems().map((item) => (
             <Link
               key={item.href}
               href={item.href}

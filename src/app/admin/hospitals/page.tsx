@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
+import { AccessGuard } from "@/components/AccessGuard";
 
 type Hospital = {
   id: string;
@@ -75,105 +76,116 @@ export default function AdminHospitalsPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <Navbar />
-      <section className="mx-auto max-w-6xl px-4 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-950">
-            Hospital Management
-          </h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
-          >
-            {showForm ? "Cancel" : "+ Add Hospital"}
-          </button>
-        </div>
+      <AccessGuard requiredRole="admin">
+        <section className="mx-auto max-w-4xl px-4 py-8">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-slate-950">Hospitals</h1>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="rounded-lg bg-blue-700 px-4 py-2 text-white text-sm hover:bg-blue-800"
+            >
+              {showForm ? "Cancel" : "+ Add Hospital"}
+            </button>
+          </div>
 
-        {showForm && (
-          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold mb-4">Add New Hospital</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+          {showForm && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAdd();
+              }}
+              className="mt-6 rounded-lg border border-slate-200 bg-white p-6 grid gap-4"
+            >
+              <h2 className="font-semibold text-slate-800">Add New Hospital</h2>
               <input
-                placeholder="Hospital Name"
+                type="text"
+                placeholder="Hospital Name *"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-2"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
               <select
                 value={type}
                 onChange={(e) =>
                   setType(e.target.value as "government" | "private")
                 }
-                className="rounded-lg border border-slate-300 px-4 py-2"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="government">Government</option>
                 <option value="private">Private</option>
               </select>
               <input
-                placeholder="Address"
+                type="text"
+                placeholder="Address *"
+                required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-2"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
               <input
-                placeholder="City"
+                type="text"
+                placeholder="City *"
+                required
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-2"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
               <input
-                placeholder="Contact Phone"
+                type="text"
+                placeholder="Contact Phone *"
+                required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-2"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
-            </div>
-            <button
-              onClick={handleAdd}
-              disabled={saving || !name || !city}
-              className="mt-4 rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300"
-            >
-              {saving ? "Saving..." : "Save Hospital"}
-            </button>
-          </div>
-        )}
-
-        <div className="mt-6 grid gap-4">
-          {loading ? (
-            <p className="text-slate-500">Loading...</p>
-          ) : hospitals.length === 0 ? (
-            <p className="text-slate-500">No hospitals added yet.</p>
-          ) : (
-            hospitals.map((h) => (
-              <div
-                key={h.id}
-                className="rounded-lg border border-slate-200 bg-white p-5 flex items-center justify-between"
+              <button
+                type="submit"
+                className="rounded-lg bg-blue-700 px-4 py-2 text-white text-sm hover:bg-blue-800"
               >
-                <div>
-                  <h3 className="font-semibold text-slate-800">{h.name}</h3>
-                  <p className="text-sm text-slate-500">
-                    {h.type} • {h.city} • {h.address}
-                  </p>
-                  <p className="text-sm text-slate-500">{h.contact_phone}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => toggleActive(h.id, h.is_active)}
-                    className={`rounded px-3 py-1 text-sm ${h.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                  >
-                    {h.is_active ? "Active" : "Inactive"}
-                  </button>
-                  <button
-                    onClick={() => deleteHospital(h.id)}
-                    className="rounded px-3 py-1 text-sm bg-red-100 text-red-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
+                {saving ? "Saving..." : "Save Hospital"}
+              </button>
+            </form>
           )}
-        </div>
-      </section>
+
+          <div className="mt-6 grid gap-3">
+            {loading ? (
+              <p className="text-slate-500">Loading hospitals...</p>
+            ) : hospitals.length === 0 ? (
+              <p className="text-slate-500">No hospitals found.</p>
+            ) : (
+              hospitals.map((h) => (
+                <div
+                  key={h.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <h3 className="font-semibold text-slate-800">{h.name}</h3>
+                    <p className="text-sm text-slate-500">
+                      {h.type} • {h.city} • {h.address}
+                    </p>
+                    <p className="text-sm text-slate-500">{h.contact_phone}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => toggleActive(h.id, h.is_active)}
+                      className={`rounded px-3 py-1 text-sm ${h.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                    >
+                      {h.is_active ? "Active" : "Inactive"}
+                    </button>
+                    <button
+                      onClick={() => deleteHospital(h.id)}
+                      className="rounded px-3 py-1 text-sm bg-red-100 text-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </AccessGuard>
     </main>
   );
 }
