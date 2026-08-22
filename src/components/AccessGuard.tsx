@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { getCurrentUserRole, isRoleAuthorized, UserRole } from "@/lib/rbac";
+import { getCurrentUserRole, getCachedUserRoleSync, isRoleAuthorized, UserRole } from "@/lib/rbac";
 import Link from "next/link";
 
 interface AccessGuardProps {
@@ -11,15 +10,18 @@ interface AccessGuardProps {
 }
 
 export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>("patient");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Read instant cache synchronously (0ms)
+  const cached = typeof window !== "undefined" ? getCachedUserRoleSync() : null;
+  const initialAuthorized = cached?.userId ? isRoleAuthorized(cached.role, requiredRole) : false;
+  const initialLoggedIn = Boolean(cached?.userId);
+
+  const [checking, setChecking] = useState(!cached); // If cache exists, 0ms delay!
+  const [authorized, setAuthorized] = useState(initialAuthorized);
+  const [userRole, setUserRole] = useState<UserRole>(cached?.role || "patient");
+  const [isLoggedIn, setIsLoggedIn] = useState(initialLoggedIn);
 
   useEffect(() => {
     async function verifyAccess() {
-      setChecking(true);
       const user = await getCurrentUserRole();
 
       if (!user.userId) {
@@ -40,19 +42,20 @@ export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
     verifyAccess();
   }, [requiredRole]);
 
-  if (checking) {
+  // If checking and no initial cache, show minimal smooth loader
+  if (checking && !authorized) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 animate-pulse">
-          Verifying security credentials & role permissions...
+      <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          Loading portal...
         </p>
       </div>
     );
   }
 
   // Case 1: User Not Logged In
-  if (!isLoggedIn) {
+  if (!isLoggedIn && !checking) {
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4">
         <div className="max-w-md w-full rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-2xl">
@@ -83,7 +86,7 @@ export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
   }
 
   // Case 2: User Logged In But Unauthorized (e.g. Patient trying to open Admin or Doctor Dashboard)
-  if (!authorized) {
+  if (!authorized && !checking) {
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4">
         <div className="max-w-lg w-full rounded-3xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-8 text-center shadow-2xl relative overflow-hidden">
@@ -133,6 +136,6 @@ export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
     );
   }
 
-  // Case 3: Fully Authorized (Admin has Superuser access everywhere, Doctor has cabin access)
+  // Case 3: Fully Authorized (0ms instant render)
   return <>{children}</>;
 }

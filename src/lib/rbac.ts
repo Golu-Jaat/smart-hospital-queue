@@ -2,12 +2,16 @@ import { supabase } from "./supabase";
 
 export type UserRole = "admin" | "doctor" | "patient";
 
-/**
- * Check if the user's role has permission for a specific area.
- * - Admin has Superuser access to EVERYTHING ('admin', 'doctor', 'patient', etc.)
- * - Doctor has access to 'doctor' and 'patient'
- * - Patient has access to 'patient' only
- */
+export interface UserSessionData {
+  role: UserRole;
+  fullName: string;
+  userId: string | null;
+  email: string | null;
+}
+
+// In-Memory Fast Cache for 0ms Route Transitions
+let inMemorySession: UserSessionData | null = null;
+
 export function isRoleAuthorized(userRole: string, requiredRole: "admin" | "doctor" | "patient"): boolean {
   if (userRole === "admin") return true; // Superuser: Admin can access everything!
   
@@ -27,20 +31,39 @@ export function isRoleAuthorized(userRole: string, requiredRole: "admin" | "doct
 }
 
 /**
- * Fetch current authenticated user's profile role from Supabase and cache
+ * Synchronously get cached user session in 0ms (from Memory or LocalStorage)
  */
-export async function getCurrentUserRole(): Promise<{
-  role: UserRole;
-  fullName: string;
-  userId: string | null;
-  email: string | null;
-}> {
+export function getCachedUserRoleSync(): UserSessionData | null {
+  if (inMemorySession) return inMemorySession;
+
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("smart_user_session");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        inMemorySession = parsed;
+        return parsed;
+      }
+    } catch (e) {}
+  }
+
+  return null;
+}
+
+/**
+ * Fetch current authenticated user's profile role from Supabase and cache it
+ */
+export async function getCurrentUserRole(): Promise<UserSessionData> {
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
+      inMemorySession = null;
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("smart_user_session");
+      }
       return { role: "patient", fullName: "", userId: null, email: null };
     }
 
@@ -53,12 +76,20 @@ export async function getCurrentUserRole(): Promise<{
     const role = (profile?.role || user.user_metadata?.role || "patient") as UserRole;
     const fullName = profile?.full_name || user.user_metadata?.full_name || "User";
 
-    return {
+    const sessionData: UserSessionData = {
       role,
       fullName,
       userId: user.id,
       email: user.email || null,
     };
+
+    // Save in memory & localStorage for instant 0ms access on subsequent clicks
+    inMemorySession = sessionData;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("smart_user_session", JSON.stringify(sessionData));
+    }
+
+    return sessionData;
   } catch (err) {
     console.error("Error checking role:", err);
     return { role: "patient", fullName: "", userId: null, email: null };

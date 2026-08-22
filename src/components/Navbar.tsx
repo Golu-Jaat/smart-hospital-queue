@@ -8,6 +8,7 @@ import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCachedUserRoleSync } from "@/lib/rbac";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
@@ -19,11 +20,13 @@ const navItems = [
 
 export function Navbar() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("patient");
+  const cached = typeof window !== "undefined" ? getCachedUserRoleSync() : null;
+
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(cached?.userId));
+  const [userName, setUserName] = useState(cached?.fullName || "");
+  const [userRole, setUserRole] = useState(cached?.role || "patient");
   const [userAvatar, setUserAvatar] = useState("");
-  const [userEmail, setUserEmail] = useState("");
+  const [userEmail, setUserEmail] = useState(cached?.email || "");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
