@@ -109,16 +109,26 @@ export default function PatientDashboardPage() {
 
       <section className="mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <p className="text-blue-600 dark:text-blue-400 font-medium">{getGreeting()} 👋</p>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white mt-1">
-            {loading
-              ? "Loading..."
-              : `Welcome, ${profile?.full_name || "Patient"}!`}
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Here is your health dashboard overview
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <p className="text-blue-600 dark:text-blue-400 font-medium">{getGreeting()} 👋</p>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-white mt-1">
+              {loading
+                ? "Loading..."
+                : `Welcome, ${profile?.full_name || "Patient"}!`}
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Here is your health dashboard overview
+            </p>
+          </div>
+
+          <Link
+            href="/patient/profile"
+            className="self-start sm:self-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-blue-500 shadow-sm transition"
+          >
+            <span>👤</span>
+            <span>Edit Profile & Health Card</span>
+          </Link>
         </div>
 
         {/* Quick Actions */}

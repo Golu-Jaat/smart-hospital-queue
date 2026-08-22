@@ -286,3 +286,16 @@ html.dark .bg-yellow-50 {
 .audio-bar-3 { animation: eq-bounce-3 0.5s ease-in-out infinite; }
 .audio-bar-4 { animation: eq-bounce-4 0.7s ease-in-out infinite; }
 
+/* Hide Next.js floating dev indicator button / 'N' circle */
+nextjs-portal,
+#nextjs-dev-indicator,
+[data-nextjs-dev-indicator],
+[data-nextjs-toast],
+[data-nextjs-dialog-overlay] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
