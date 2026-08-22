@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { LogoSwitcher } from "@/components/LogoSwitcher";
 
 const featurePills = [
   { id: "queue", icon: "🏥", label: "Smart OPD Queue", highlight: "Zero Waiting Fatigue" },
@@ -81,16 +80,11 @@ export default function HomePage() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors overflow-hidden relative selection:bg-blue-500 selection:text-white">
       <Navbar />
 
-      {/* Interactive Logo Switcher Showcase Bar */}
-      <div className="mx-auto max-w-7xl px-4 pt-6">
-        <LogoSwitcher />
-      </div>
-
       {/* Ambient 3D Mesh Lighting Glows */}
       <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-blue-500/15 dark:bg-blue-600/12 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-3d" />
       <div className="absolute top-72 right-10 w-[450px] h-[450px] bg-purple-500/15 dark:bg-indigo-600/12 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-3d" style={{ animationDelay: "3s" }} />
 
-      <section className="mx-auto max-w-7xl px-4 pt-8 pb-20 lg:py-16 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      <section className="mx-auto max-w-7xl px-4 pt-12 pb-20 lg:py-20 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
         {/* Left Column: Ultra-Professional Interactive Hero */}
         <div className="lg:col-span-7 space-y-6">
           
