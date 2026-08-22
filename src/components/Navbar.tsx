@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
+import { SmartQueueLogo } from "./SmartQueueLogo";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
@@ -110,14 +111,14 @@ export function Navbar() {
     <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm sticky top-0 z-40 transition-colors">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <span className="text-2xl transform group-hover:scale-110 transition-transform">🏥</span>
+        <Link href="/" className="flex items-center gap-3 group">
+          <SmartQueueLogo size={38} />
           <div>
-            <p className="font-black text-slate-800 dark:text-white text-sm leading-tight">
-              Smart Hospital
+            <p className="font-black text-slate-800 dark:text-white text-base tracking-tight leading-tight">
+              Smart<span className="text-blue-600 dark:text-blue-400">Queue</span>
             </p>
-            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 leading-tight">
-              Queue System
+            <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">
+              AI Hospital Flow
             </p>
           </div>
         </Link>
