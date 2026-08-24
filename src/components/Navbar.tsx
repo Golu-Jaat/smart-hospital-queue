@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
-import { SmartQueueLogo, LogoVariant } from "./SmartQueueLogo";
+import { SmartQueueLogo } from "./SmartQueueLogo";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { getCachedUserRoleSync } from "@/lib/rbac";
+import { getCachedUserRoleSync, type UserRole } from "@/lib/rbac";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
@@ -20,13 +20,12 @@ const navItems = [
 
 export function Navbar() {
   const router = useRouter();
-  const cached = typeof window !== "undefined" ? getCachedUserRoleSync() : null;
 
-  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(cached?.userId));
-  const [userName, setUserName] = useState(cached?.fullName || "");
-  const [userRole, setUserRole] = useState(cached?.role || "patient");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState<UserRole>("patient");
   const [userAvatar, setUserAvatar] = useState("");
-  const [userEmail, setUserEmail] = useState(cached?.email || "");
+  const [userEmail, setUserEmail] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -43,9 +42,9 @@ export function Navbar() {
       const localProfile = localStorage.getItem(`user_profile_${user.id}`);
       if (localProfile) {
         try {
-          const parsed = JSON.parse(localProfile);
+          const parsed = JSON.parse(localProfile) as { avatar_url?: string };
           if (parsed.avatar_url) setUserAvatar(parsed.avatar_url);
-        } catch (e) {}
+        } catch {}
       }
 
       const { data: profile } = await supabase
@@ -55,17 +54,23 @@ export function Navbar() {
         .single();
 
       setUserName(profile?.full_name || user.user_metadata?.full_name || "User");
-      setUserRole(profile?.role || user.user_metadata?.role || "patient");
+      setUserRole((profile?.role || user.user_metadata?.role || "patient") as UserRole);
 
-      if (user.user_metadata?.avatar_url && !userAvatar) {
-        setUserAvatar(user.user_metadata.avatar_url);
-      }
+      setUserAvatar((current) => current || user.user_metadata?.avatar_url || "");
     } else {
       setIsLoggedIn(false);
     }
   };
 
   useEffect(() => {
+    const cached = getCachedUserRoleSync();
+    if (cached?.userId) {
+      setIsLoggedIn(true);
+      setUserName(cached.fullName);
+      setUserRole(cached.role);
+      setUserEmail(cached.email || "");
+    }
+
     fetchUserData();
 
     // Listen for profile changes
@@ -242,18 +247,20 @@ export function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link
-                href="/login"
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
                 className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-3 py-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition"
               >
                 Login
-              </Link>
-              <Link
-                href="/signup"
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/signup")}
                 className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm"
               >
                 Sign Up
-              </Link>
+              </button>
             </div>
           )}
         </div>

@@ -16,24 +16,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('theme');
-                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  if (saved === 'dark' || (!saved && prefersDark)) {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    document.documentElement.classList.remove('dark');
-                  }
-                } catch (e) {}
-              })();
-            `,
+            __html: `(function(){try{var saved=localStorage.getItem('theme');var cookie=document.cookie.match(/(?:^|; )theme=([^;]*)/);var theme=saved||(cookie?decodeURIComponent(cookie[1]):null);var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;if(theme==='dark'||(!theme&&prefersDark)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`,
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+      </body>
     </html>
   );
 }

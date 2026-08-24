@@ -55,12 +55,18 @@ Add these values (get from your Supabase project dashboard):
 # ─── Supabase ──────────────────────────────────────────────
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-public-key
+
+# ─── AI Assistant ──────────────────────────────────────────
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 **Where to find these values:**
 1. Go to https://supabase.com → Your Project
 2. Click **Settings** → **API**
 3. Copy **Project URL** and **anon public** key
+
+For Gemini, create or copy the key from Google AI Studio and save it as `GEMINI_API_KEY`.
+Do **not** use `NEXT_PUBLIC_GEMINI_API_KEY`; `NEXT_PUBLIC_` variables are bundled into the browser.
 
 > ⚠️ **IMPORTANT:** Never commit `.env.local` to Git. It is already listed in `.gitignore`.
 
@@ -125,12 +131,15 @@ git push origin main
 ### Step 3: Add Environment Variables in Vercel
 In the Vercel project setup screen:
 1. Click **"Environment Variables"**
-2. Add these two variables:
+2. Add these variables:
 
 | Key | Value |
 | :--- | :--- |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `your-anon-key` |
+| `GEMINI_API_KEY` | `your-gemini-api-key` |
+
+Keep `GEMINI_API_KEY` server-only. Never add `NEXT_PUBLIC_GEMINI_API_KEY` in production.
 
 ### Step 4: Deploy
 Click **"Deploy"** — Vercel will automatically:
@@ -159,6 +168,7 @@ In Railway project → **Variables** tab:
 ```
 NEXT_PUBLIC_SUPABASE_URL = https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY = your-anon-key
+GEMINI_API_KEY = your-gemini-api-key
 ```
 
 ### Step 4: Set Build Command
@@ -205,7 +215,7 @@ npm install
 
 # Create environment file
 nano .env.local
-# Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, save with Ctrl+X
+# Add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and GEMINI_API_KEY, save with Ctrl+X
 
 # Build production
 npm run build
@@ -299,6 +309,28 @@ Redirect URLs:       https://your-app-url.vercel.app/**
 
 > ⚠️ Without this, password reset email links will fail in production.
 
+### Demo Data
+The current Supabase project has a development/demo dataset for Bikaner:
+- 11 active hospitals
+- 66 departments/sections
+- 11 demo doctors
+- 66 doctor schedules
+- 6 demo patients
+- 6 sample appointments
+
+Demo patient login:
+```
+Email:    patient.rohit.soni@smartqueue.demo
+Password: Patient@123
+```
+
+Demo doctor password:
+```
+Doctor@123
+```
+
+These records are synthetic and should be replaced or reviewed before a real production launch.
+
 ---
 
 ## 8. Custom Domain Setup
@@ -350,11 +382,12 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 ```
 
 **Add Secrets to GitHub:**
 1. Go to GitHub repo → **Settings** → **Secrets and variables** → **Actions**
-2. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `GEMINI_API_KEY`
 
 ---
 
@@ -411,11 +444,13 @@ sudo tail -f /var/log/nginx/error.log
 Before going live, verify:
 
 - [ ] `.env.local` values are correct and set in hosting platform
+- [ ] `GEMINI_API_KEY` is set server-side only; no `NEXT_PUBLIC_GEMINI_API_KEY`
 - [ ] `npm run build` passes with **0 errors**
 - [ ] `npx tsc --noEmit` passes with **0 TypeScript errors**
 - [ ] Supabase Realtime enabled for `tokens` and `queues` tables
 - [ ] Supabase Auth Redirect URL updated to production domain
 - [ ] Row Level Security (RLS) policies enabled on all tables
+- [ ] Demo Bikaner data reviewed/replaced before real hospital launch
 - [ ] Custom domain DNS configured and HTTPS certificate active
 - [ ] Test login, token booking, doctor cabin, and TV display on live URL
 

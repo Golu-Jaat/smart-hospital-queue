@@ -1,14 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
-import { supabase } from "@/lib/supabase";
 import { assessSymptoms } from "@/lib/ai";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
+
+type AssistantApiResponse = {
+  message?: string;
+  error?: string;
+};
+
+type SpeechRecognitionResultEventLike = Event & {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+};
+
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window &
+  typeof globalThis & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
 
 export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -20,13 +53,6 @@ export default function AIAssistantPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-    console.log("Gemini API Key loaded:", key ? "YES" : "NO - MISSING");
-    setApiKey(key);
-  }, []);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -78,80 +104,26 @@ export default function AIAssistantPage() {
       return fallbackText;
     };
 
-    if (!apiKey) {
-      const fallbackResponse = runFallbackAssessment();
+    try {
+      const response = await fetch("/api/ai-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage }),
+      });
+      const data = (await response.json()) as AssistantApiResponse;
+
+      if (!response.ok || !data.message) {
+        throw new Error(data.error || "AI service unavailable");
+      }
+
       setMessages([
         ...newMessages,
         {
           role: "assistant",
-          content: fallbackResponse,
+          content: data.message,
         },
       ]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data: departments } = await supabase
-        .from("departments")
-        .select("name")
-        .eq("is_active", true);
-
-      const deptList =
-        departments?.map((d) => d.name).join(", ") || "General Medicine, Cardiology, Orthopedics, Pediatrics, Dermatology";
-
-      const prompt = `You are a helpful hospital AI assistant. Available departments: ${deptList}.
-Rules:
-1. Ask about symptoms, duration, and severity if needed.
-2. Recommend a suitable department from the available list.
-3. NEVER diagnose a disease or prescribe specific medicines/dosages.
-4. For emergency signs, immediately advise calling 108/112 or visiting the nearest emergency care.
-5. Keep responses concise, clear, and reassuring.
-6. End with: "Disclaimer: I am not a doctor."
-Respond in the same language as the patient.
-
-Patient says: ${userMessage}`;
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: prompt }],
-              },
-            ],
-            generationConfig: { maxOutputTokens: 1024 },
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (data.error || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
-        // Use intelligent rule-based fallback if API quota or key fails
-        const fallbackMessage = runFallbackAssessment();
-        setMessages([
-          ...newMessages,
-          {
-            role: "assistant",
-            content: fallbackMessage,
-          },
-        ]);
-      } else {
-        const assistantMessage = data.candidates[0].content.parts[0].text;
-        setMessages([
-          ...newMessages,
-          {
-            role: "assistant",
-            content: assistantMessage,
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error("Fetch error, using fallback:", err);
+    } catch {
       const fallbackMessage = runFallbackAssessment();
       setMessages([
         ...newMessages,
@@ -171,8 +143,9 @@ Patient says: ${userMessage}`;
   const startVoiceInput = () => {
     if (typeof window === "undefined") return;
 
+    const speechWindow = window as SpeechRecognitionWindow;
     const SpeechRecognitionClass =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
       alert("Voice speech recognition is not supported in this browser. Please use Chrome or Edge.");
@@ -189,7 +162,7 @@ Patient says: ${userMessage}`;
         setIsListening(true);
       };
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (transcript) {
           setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
@@ -205,7 +178,7 @@ Patient says: ${userMessage}`;
       };
 
       recognition.start();
-    } catch (e) {
+    } catch {
       setIsListening(false);
     }
   };
@@ -260,14 +233,6 @@ Patient says: ${userMessage}`;
             </button>
           </div>
         </div>
-
-        {!apiKey && (
-          <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-3">
-            <p className="text-amber-800 dark:text-amber-300 text-xs">
-              ℹ️ Using Local Medical Rule Evaluator (Emergency detection & intelligent department triage active).
-            </p>
-          </div>
-        )}
 
         <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
           <div className="h-96 overflow-y-auto p-6 space-y-4">

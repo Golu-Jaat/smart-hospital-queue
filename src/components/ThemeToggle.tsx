@@ -1,40 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
+
+function getInitialDarkMode() {
+  if (typeof window === 'undefined') return false;
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') return true;
+  if (saved === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function persistTheme(isDark: boolean) {
+  const theme = isDark ? 'dark' : 'light';
+  localStorage.setItem('theme', theme);
+  document.cookie = `theme=${encodeURIComponent(theme)}; path=/; max-age=31536000; SameSite=Lax`;
+  document.documentElement.classList.toggle('dark', isDark);
+}
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(getInitialDarkMode);
 
-  useEffect(() => {
-    setMounted(true);
-    const hasDarkClass = document.documentElement.classList.contains('dark');
-    setIsDark(hasDarkClass);
+  useLayoutEffect(() => {
+    const nextDark = getInitialDarkMode();
+    persistTheme(nextDark);
+    setIsDark(nextDark);
   }, []);
 
   const toggleTheme = () => {
     const nextDark = !document.documentElement.classList.contains('dark');
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-      setIsDark(true);
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      setIsDark(false);
-    }
+    persistTheme(nextDark);
+    setIsDark(nextDark);
   };
-
-  if (!mounted) {
-    return (
-      <button
-        aria-label="Toggle theme"
-        className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg leading-none"
-      >
-        🌙
-      </button>
-    );
-  }
 
   return (
     <button

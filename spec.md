@@ -72,6 +72,8 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Microphone voice input via **Web Speech API** (real-time dictation)
 - Text input also supported (manual typing)
 - Accepts symptom description in **Hindi or English**
+- Gemini AI runs through a server-side API route (`/api/ai-assistant`) so the API key is never exposed in the browser
+- Fast local medical rule fallback returns safe department triage if Gemini is slow, unavailable, or incomplete
 - Gemini AI analyzes symptoms → recommends appropriate medical department
   - e.g. chest pain → Cardiology; joint pain → Orthopedics; child fever → Pediatrics
 - **1-click navigation** to book appointment with suggested specialist
@@ -162,6 +164,34 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Browse registered hospitals and departments
 - Browse active doctors by specialty
 - 1-click "Book Appointment" navigation
+
+---
+
+## 4.10 🧪 Demo / Seed Dataset
+
+The Supabase project currently includes a Bikaner demo dataset for development and product demos:
+
+- **11 active Bikaner hospitals**
+- **66 active departments/sections** across those hospitals
+  - General Medicine
+  - Emergency
+  - Pediatrics
+  - Orthopedics
+  - Gynecology
+  - Cardiology
+- **11 active demo doctors** linked to hospital + department + room number
+- **66 doctor schedules** for Monday-Saturday, `09:00-14:00`
+- **6 demo patients**
+- **6 sample appointments** dated `2026-08-25` to `2026-08-27`
+
+Demo credentials:
+
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| Patient | `patient.rohit.soni@smartqueue.demo` | `Patient@123` |
+| Doctor accounts | `dr.*@smartqueue.demo` | `Doctor@123` |
+
+> Demo doctors and patients are synthetic records for testing. Do not treat them as real hospital staff or real patient data.
 
 ---
 
@@ -259,6 +289,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 | **Audio** | Web Audio API (Oscillator chime synthesis) |
 | **Voice** | Web Speech API (SpeechRecognition + SpeechSynthesis) |
 | **Charts** | Recharts |
+| **AI** | Gemini via server-only `GEMINI_API_KEY` with local triage fallback |
 | **Deployment** | Vercel / Railway |
 
 ---
