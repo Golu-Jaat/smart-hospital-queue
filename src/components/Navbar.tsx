@@ -117,15 +117,15 @@ export function Navbar() {
 
   return (
     <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm sticky top-0 z-40 transition-colors">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <SmartQueueLogo size={38} variant="pulse-cross" />
-          <div>
+        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3 group">
+          <SmartQueueLogo size={34} variant="pulse-cross" />
+          <div className="min-w-0">
             <p className="font-black text-slate-800 dark:text-white text-base tracking-tight leading-tight">
               Smart<span className="text-blue-600 dark:text-blue-400">Queue</span>
             </p>
-            <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight">
+            <p className="hidden text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-tight sm:block">
               AI Hospital Flow
             </p>
           </div>
@@ -145,7 +145,7 @@ export function Navbar() {
         </div>
 
         {/* Right Side */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
           {isLoggedIn && <NotificationBell />}
 
@@ -175,7 +175,7 @@ export function Navbar() {
 
               {/* User Profile Dropdown Menu */}
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   {/* User Profile Header Card */}
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow">
@@ -200,6 +200,21 @@ export function Navbar() {
                         </span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Mobile Role Navigation */}
+                  <div className="space-y-1 text-xs font-semibold md:hidden">
+                    {getFilteredNavItems().map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 transition"
+                      >
+                        <span>•</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    ))}
                   </div>
 
                   {/* Navigation Links */}
@@ -246,18 +261,18 @@ export function Navbar() {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={() => router.push("/login")}
-                className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-3 py-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition"
+                className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-2 sm:px-3 py-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition"
               >
                 Login
               </button>
               <button
                 type="button"
                 onClick={() => router.push("/signup")}
-                className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm"
+                className="text-xs sm:text-sm font-bold bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm"
               >
                 Sign Up
               </button>

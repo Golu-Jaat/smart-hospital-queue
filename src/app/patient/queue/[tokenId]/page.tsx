@@ -98,8 +98,8 @@ export default function QueueStatusPage() {
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
-      <section className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Live Queue Status</h1>
+      <section className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
+        <h1 className="text-2xl font-bold text-slate-950 dark:text-white sm:text-3xl">Live Queue Status</h1>
 
         {loading ? (
           <p className="mt-6 text-slate-500 dark:text-slate-400">Loading...</p>
@@ -107,22 +107,22 @@ export default function QueueStatusPage() {
           <p className="mt-6 text-slate-500 dark:text-slate-400">Token not found.</p>
         ) : (
           <>
-            <div className="mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
-              <div className="flex items-center justify-between">
+            <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Your Token</p>
-                  <p className="text-5xl font-bold text-blue-600 dark:text-blue-400">
+                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 sm:text-5xl">
                     #{token.token_number}
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${getStatusColor(token.status)}`}
+                  className={`w-full rounded-full px-4 py-2 text-center text-sm font-semibold sm:w-auto ${getStatusColor(token.status)}`}
                 >
                   {token.status.toUpperCase()}
                 </span>
               </div>
 
-              <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+              <div className="mt-6 grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
                 <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-4">
                   <p className="text-sm text-slate-500 dark:text-slate-400">Now Serving</p>
                   <p className="text-2xl font-bold text-slate-800 dark:text-white">
@@ -144,7 +144,7 @@ export default function QueueStatusPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
+            <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:p-6">
               <h2 className="font-semibold text-slate-800 dark:text-white">Doctor Info</h2>
               <p className="mt-2 text-slate-600 dark:text-slate-300">
                 {token.queues?.doctors?.profiles?.full_name}
@@ -158,7 +158,7 @@ export default function QueueStatusPage() {
             </div>
 
             {token.status === "called" && (
-              <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
+              <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 sm:p-6">
                 <p className="text-yellow-800 font-semibold text-lg">
                   🔔 Your turn! Please proceed to Room{" "}
                   {token.queues?.doctors?.room_number}
@@ -167,7 +167,7 @@ export default function QueueStatusPage() {
             )}
 
             {token.status === "completed" && (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-6">
+              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 sm:p-6">
                 <p className="text-green-800 font-semibold">
                   ✅ Consultation completed. Thank you!
                 </p>

@@ -186,7 +186,7 @@ export default function HomePage() {
           </div>
 
           {/* Live Trust Metrics */}
-          <div className="pt-4 grid grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-800/80 max-w-lg">
+          <div className="grid max-w-lg grid-cols-1 gap-3 border-t border-slate-200 pt-4 dark:border-slate-800/80 sm:grid-cols-3 sm:gap-4">
             <div>
               <p className="text-2xl font-black text-slate-900 dark:text-white font-mono">0 sec</p>
               <p className="text-xs text-slate-500 dark:text-slate-400">WebSocket Delay</p>
@@ -218,7 +218,7 @@ export default function HomePage() {
           >
             {/* Hologram 3D Pass */}
             <div className="hologram-card rounded-3xl p-6 sm:p-8 border border-white/60 dark:border-slate-700/80 bg-gradient-to-br from-white via-slate-50/95 to-blue-50/60 dark:from-slate-850 dark:via-slate-800 dark:to-slate-900 shadow-2xl backdrop-blur-xl">
-              <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-5">
+              <div className="flex flex-col gap-3 border-b border-dashed border-slate-200 pb-5 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xl shadow-lg shadow-blue-500/30">
                     🏥
@@ -238,7 +238,7 @@ export default function HomePage() {
                 <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
                 <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold">Your Token Number</p>
                 <div className="my-2 flex items-center justify-center gap-2">
-                  <span className="text-6xl font-black font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-200 to-white animate-pulse">
+                  <span className="font-mono text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-200 to-white animate-pulse sm:text-6xl">
                     #14
                   </span>
                 </div>
@@ -261,7 +261,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="mt-5 flex flex-col gap-2 border-t border-slate-200 pt-4 text-[11px] text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
                 <span className="flex items-center gap-1.5 font-medium">
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
                   3D Holographic Pass Active

@@ -127,21 +127,21 @@ export default function AdminDoctorsPage() {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
       <AccessGuard requiredRole="admin">
-        <section className="mx-auto max-w-6xl px-4 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-950">
+        <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
             Doctor Management
           </h1>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
+            className="w-full rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 sm:w-auto"
           >
             {showForm ? "Cancel" : "+ Add Doctor"}
           </button>
         </div>
 
         {showForm && (
-          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6">
+          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
             <h2 className="text-lg font-semibold mb-4">Add New Doctor</h2>
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
@@ -210,7 +210,7 @@ export default function AdminDoctorsPage() {
               disabled={
                 saving || !fullName || !email || !hospitalId || !departmentId
               }
-              className="mt-4 rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300"
+              className="mt-4 w-full rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300 sm:w-auto"
             >
               {saving ? "Saving..." : "Save Doctor"}
             </button>
@@ -226,13 +226,13 @@ export default function AdminDoctorsPage() {
             doctors.map((d) => (
               <div
                 key={d.id}
-                className="rounded-lg border border-slate-200 bg-white p-5 flex items-center justify-between"
+                className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
               >
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-semibold text-slate-800">
                     {d.profiles?.full_name}
                   </h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="break-words text-sm text-slate-500">
                     {d.specialization} • {d.departments?.name} •{" "}
                     {d.hospitals?.name}
                   </p>
@@ -243,7 +243,7 @@ export default function AdminDoctorsPage() {
                 </div>
                 <button
                   onClick={() => toggleActive(d.id, d.is_active)}
-                  className={`rounded px-3 py-1 text-sm ${d.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                  className={`w-full rounded px-3 py-1 text-sm sm:w-auto ${d.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                 >
                   {d.is_active ? "Active" : "Inactive"}
                 </button>

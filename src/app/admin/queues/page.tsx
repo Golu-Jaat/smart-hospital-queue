@@ -141,21 +141,21 @@ export default function AdminQueuesPage() {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
       <AccessGuard requiredRole="admin">
-        <section className="mx-auto max-w-6xl px-4 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-950">
+        <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
             Queue Management
           </h1>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
+            className="w-full rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 sm:w-auto"
           >
             {showForm ? "Cancel" : "+ Create Queue"}
           </button>
         </div>
 
         {showForm && (
-          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6">
+          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
             <h2 className="text-lg font-semibold mb-4">Create New Queue</h2>
             <select
               value={doctorId}
@@ -175,7 +175,7 @@ export default function AdminQueuesPage() {
             <button
               onClick={createQueue}
               disabled={saving || !doctorId}
-              className="mt-4 rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300"
+              className="mt-4 w-full rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300 sm:w-auto"
             >
               {saving ? "Creating..." : "Create Queue"}
             </button>
@@ -193,27 +193,27 @@ export default function AdminQueuesPage() {
                 key={q.id}
                 className="rounded-lg border border-slate-200 bg-white p-5"
               >
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-slate-800">
                       {q.doctors?.profiles?.full_name} —{" "}
                       {q.doctors?.specialization}
                     </h3>
-                    <p className="text-sm text-slate-500">
+                    <p className="break-words text-sm text-slate-500">
                       {q.hospitals?.name} • {q.queue_date} • Current Token: #
                       {q.current_token_number}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(q.status)}`}
+                      className={`flex-1 rounded-full px-3 py-1 text-center text-xs font-semibold sm:flex-none ${getStatusColor(q.status)}`}
                     >
                       {q.status}
                     </span>
                     {q.status === "active" && (
                       <button
                         onClick={() => updateQueueStatus(q.id, "paused")}
-                        className="rounded px-3 py-1 text-xs bg-yellow-100 text-yellow-700"
+                        className="flex-1 rounded bg-yellow-100 px-3 py-1 text-xs text-yellow-700 sm:flex-none"
                       >
                         Pause
                       </button>
@@ -221,7 +221,7 @@ export default function AdminQueuesPage() {
                     {q.status === "paused" && (
                       <button
                         onClick={() => updateQueueStatus(q.id, "active")}
-                        className="rounded px-3 py-1 text-xs bg-green-100 text-green-700"
+                        className="flex-1 rounded bg-green-100 px-3 py-1 text-xs text-green-700 sm:flex-none"
                       >
                         Resume
                       </button>
@@ -230,7 +230,7 @@ export default function AdminQueuesPage() {
                       onClick={() =>
                         setSelectedQueue(selectedQueue === q.id ? "" : q.id)
                       }
-                      className="rounded px-3 py-1 text-xs bg-blue-100 text-blue-700"
+                      className="flex-1 rounded bg-blue-100 px-3 py-1 text-xs text-blue-700 sm:flex-none"
                     >
                       {selectedQueue === q.id ? "Hide Tokens" : "View Tokens"}
                     </button>
@@ -249,9 +249,9 @@ export default function AdminQueuesPage() {
                         {tokens.map((t) => (
                           <div
                             key={t.id}
-                            className="flex items-center justify-between bg-slate-50 rounded p-3"
+                            className="flex flex-col gap-3 rounded bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
                           >
-                            <div>
+                            <div className="min-w-0">
                               <span className="font-semibold text-slate-800">
                                 #{t.token_number}
                               </span>
@@ -265,12 +265,12 @@ export default function AdminQueuesPage() {
                               </span>
                             </div>
                             {t.status === "waiting" && (
-                              <div className="flex gap-2">
+                              <div className="flex w-full gap-2 sm:w-auto">
                                 <button
                                   onClick={() =>
                                     updateTokenStatus(t.id, "called", q.id)
                                   }
-                                  className="rounded px-2 py-1 text-xs bg-yellow-100 text-yellow-700"
+                                  className="flex-1 rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-700 sm:flex-none"
                                 >
                                   Call
                                 </button>
@@ -278,7 +278,7 @@ export default function AdminQueuesPage() {
                                   onClick={() =>
                                     updateTokenStatus(t.id, "skipped", q.id)
                                   }
-                                  className="rounded px-2 py-1 text-xs bg-slate-100 text-slate-700"
+                                  className="flex-1 rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 sm:flex-none"
                                 >
                                   Skip
                                 </button>
@@ -289,7 +289,7 @@ export default function AdminQueuesPage() {
                                 onClick={() =>
                                   updateTokenStatus(t.id, "completed", q.id)
                                 }
-                                className="rounded px-2 py-1 text-xs bg-green-100 text-green-700"
+                                className="w-full rounded bg-green-100 px-2 py-1 text-xs text-green-700 sm:w-auto"
                               >
                                 Complete
                               </button>

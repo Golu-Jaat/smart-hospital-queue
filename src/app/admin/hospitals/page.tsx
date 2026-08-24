@@ -77,12 +77,12 @@ export default function AdminHospitalsPage() {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
       <AccessGuard requiredRole="admin">
-        <section className="mx-auto max-w-4xl px-4 py-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-slate-950">Hospitals</h1>
+        <section className="mx-auto max-w-4xl px-4 py-6 sm:py-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">Hospitals</h1>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="rounded-lg bg-blue-700 px-4 py-2 text-white text-sm hover:bg-blue-800"
+              className="w-full rounded-lg bg-blue-700 px-4 py-2 text-sm text-white hover:bg-blue-800 sm:w-auto"
             >
               {showForm ? "Cancel" : "+ Add Hospital"}
             </button>
@@ -94,7 +94,7 @@ export default function AdminHospitalsPage() {
                 e.preventDefault();
                 handleAdd();
               }}
-              className="mt-6 rounded-lg border border-slate-200 bg-white p-6 grid gap-4"
+              className="mt-6 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:p-6"
             >
               <h2 className="font-semibold text-slate-800">Add New Hospital</h2>
               <input
@@ -141,7 +141,7 @@ export default function AdminHospitalsPage() {
               />
               <button
                 type="submit"
-                className="rounded-lg bg-blue-700 px-4 py-2 text-white text-sm hover:bg-blue-800"
+                className="rounded-lg bg-blue-700 px-4 py-2 text-sm text-white hover:bg-blue-800"
               >
                 {saving ? "Saving..." : "Save Hospital"}
               </button>
@@ -157,25 +157,25 @@ export default function AdminHospitalsPage() {
               hospitals.map((h) => (
                 <div
                   key={h.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between"
+                  className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-slate-800">{h.name}</h3>
-                    <p className="text-sm text-slate-500">
+                    <p className="break-words text-sm text-slate-500">
                       {h.type} • {h.city} • {h.address}
                     </p>
                     <p className="text-sm text-slate-500">{h.contact_phone}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
                     <button
                       onClick={() => toggleActive(h.id, h.is_active)}
-                      className={`rounded px-3 py-1 text-sm ${h.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      className={`flex-1 rounded px-3 py-1 text-sm sm:flex-none ${h.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                     >
                       {h.is_active ? "Active" : "Inactive"}
                     </button>
                     <button
                       onClick={() => deleteHospital(h.id)}
-                      className="rounded px-3 py-1 text-sm bg-red-100 text-red-700"
+                      className="flex-1 rounded bg-red-100 px-3 py-1 text-sm text-red-700 sm:flex-none"
                     >
                       Delete
                     </button>

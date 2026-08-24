@@ -240,13 +240,13 @@ export default function WaitingRoomDisplayPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col justify-between select-none">
       {/* Top Banner & TV Header */}
-      <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between shadow-lg gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-blue-500/30 shadow-lg">
+      <header className="flex flex-col gap-4 border-b border-slate-800 bg-slate-900 px-4 py-4 shadow-lg lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:px-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-xl shadow-lg shadow-blue-500/30 sm:h-12 sm:w-12 sm:text-2xl">
             🏥
           </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="flex flex-wrap items-center gap-2 text-xl font-black tracking-tight text-white sm:text-2xl">
               SMART HOSPITAL
               <span className="text-xs bg-blue-600/30 text-blue-400 border border-blue-500/40 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                 OPD LIVE DISPLAY
@@ -257,13 +257,13 @@ export default function WaitingRoomDisplayPage() {
         </div>
 
         {/* Filters and Controls */}
-        <div className="flex items-center flex-wrap gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:gap-3">
           {/* Hospital Filter */}
           {hospitals.length > 1 && (
             <select
               value={selectedHospital}
               onChange={(e) => setSelectedHospital(e.target.value)}
-              className="bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-blue-500"
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 sm:flex-none"
             >
               <option value="all">All Hospitals</option>
               {hospitals.map((h) => (
@@ -279,7 +279,7 @@ export default function WaitingRoomDisplayPage() {
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-blue-500"
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 sm:flex-none"
             >
               <option value="all">All Departments</option>
               {departments.map((d) => (
@@ -293,7 +293,7 @@ export default function WaitingRoomDisplayPage() {
           {/* Voice Language Toggle */}
           <button
             onClick={() => setVoiceLang((prev) => (prev === "en" ? "hi" : "en"))}
-            className="bg-slate-800 hover:bg-slate-700 text-xs border border-slate-700 rounded-lg px-3 py-2 font-medium flex items-center gap-1.5 transition"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium transition hover:bg-slate-700 sm:flex-none"
             title="Switch Speech Language"
           >
             <span>🌐</span>
@@ -301,11 +301,11 @@ export default function WaitingRoomDisplayPage() {
           </button>
 
           {/* Audio Enable & 3D Waveform Visualizer */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-1 items-center gap-2 sm:flex-none">
             {!soundEnabled ? (
               <button
                 onClick={handleEnableAudio}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 animate-bounce shadow-lg shadow-amber-500/20"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-600 sm:w-auto"
               >
                 <span>🔈</span>
                 <span>Enable Audio</span>
@@ -313,7 +313,7 @@ export default function WaitingRoomDisplayPage() {
             ) : (
               <button
                 onClick={() => setSoundEnabled(false)}
-                className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-300 sm:w-auto"
               >
                 <span>🔊 Audio Active</span>
                 <div className="flex items-end gap-0.5 h-4 ml-1">
@@ -329,7 +329,7 @@ export default function WaitingRoomDisplayPage() {
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}
-            className="bg-slate-800 hover:bg-slate-700 text-xs border border-slate-700 rounded-lg px-3 py-2 font-medium transition"
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium transition hover:bg-slate-700 sm:flex-none"
             title="Toggle Fullscreen"
           >
             ⛶ Fullscreen
@@ -344,7 +344,7 @@ export default function WaitingRoomDisplayPage() {
         </div>
 
         {/* Live Clock with 3D Border Glow */}
-        <div className="text-right bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 shadow-md">
+        <div className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2 text-left shadow-md sm:w-auto sm:text-right">
           <p className="text-xl font-bold font-mono text-emerald-400 leading-none">
             {currentTime}
           </p>
@@ -355,7 +355,7 @@ export default function WaitingRoomDisplayPage() {
       </header>
 
       {/* Main Grid: Active Consultation Rooms with 3D Perspective */}
-      <main className="flex-1 p-6 perspective-1000">
+      <main className="flex-1 p-4 perspective-1000 sm:p-6">
         {filteredRooms.length === 0 ? (
           <div className="h-96 flex flex-col items-center justify-center text-center">
             <span className="text-6xl mb-4 animate-float-3d">🏥</span>
@@ -372,19 +372,19 @@ export default function WaitingRoomDisplayPage() {
               return (
                 <div
                   key={room.queueId}
-                  className={`rounded-3xl p-6 border transition-all duration-500 relative overflow-hidden flex flex-col justify-between shadow-2xl ${
+                  className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border p-4 shadow-2xl transition-all duration-500 sm:p-6 ${
                     isNewlyCalled
                       ? "bg-gradient-to-b from-blue-900/95 via-indigo-950 to-slate-900 border-amber-400 shadow-2xl shadow-amber-500/40 ring-4 ring-amber-400/80 scale-105 animate-flip-3d"
                       : "bg-slate-900/90 border-slate-800 hover:border-slate-700 card-3d-hover"
                   }`}
                 >
                   {/* Room Number & Dept Badge */}
-                  <div className="flex items-start justify-between">
-                    <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
                         {room.departmentName}
                       </span>
-                      <h3 className="text-lg font-bold text-white mt-2 leading-snug">
+                      <h3 className="mt-2 break-words text-lg font-bold leading-snug text-white">
                         {room.doctorName}
                       </h3>
                     </div>
@@ -407,7 +407,7 @@ export default function WaitingRoomDisplayPage() {
                     </p>
                     <div className="flex items-center justify-center gap-2">
                       <span
-                        className={`text-6xl font-black tracking-tight font-mono ${
+                        className={`font-mono text-5xl font-black tracking-tight sm:text-6xl ${
                           isNewlyCalled
                             ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-100 animate-pulse"
                             : room.currentTokenNumber > 0 ? "text-amber-400" : "text-slate-600"
@@ -439,16 +439,16 @@ export default function WaitingRoomDisplayPage() {
       </main>
 
       {/* Bottom Bar: Next in Line Marquee & Emergency Helpline */}
-      <footer className="bg-slate-900 border-t border-slate-800 px-6 py-3 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-4">
+      <footer className="flex flex-col gap-3 border-t border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-400 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
         {/* Next Patients Queue */}
-        <div className="flex items-center gap-3 flex-1 min-w-[300px] overflow-hidden">
+        <div className="flex w-full min-w-0 flex-1 items-center gap-3 overflow-hidden">
           <span className="bg-blue-600 text-white font-bold px-2.5 py-1 rounded-md uppercase tracking-wider text-[10px] flex-shrink-0">
             Next In Line
           </span>
           {upcoming.length === 0 ? (
             <span className="text-slate-500">No waiting patients in queue</span>
           ) : (
-            <div className="flex items-center gap-3 overflow-x-auto py-1 scrollbar-none">
+            <div className="flex min-w-0 items-center gap-3 overflow-x-auto py-1 scrollbar-none">
               {upcoming.map((u) => (
                 <div
                   key={u.id}
@@ -464,7 +464,7 @@ export default function WaitingRoomDisplayPage() {
         </div>
 
         {/* Emergency Assistance Helpline */}
-        <div className="flex items-center gap-4 text-right flex-shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-3 text-left sm:w-auto sm:flex-shrink-0 sm:justify-end sm:text-right">
           <span className="text-slate-500 hidden sm:inline">
             Need help? Contact reception desk
           </span>

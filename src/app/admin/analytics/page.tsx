@@ -173,17 +173,17 @@ export default function AdminAnalyticsPage() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
       <Navbar />
       <AccessGuard requiredRole="admin">
-        <section className="mx-auto max-w-6xl px-4 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Hospital Analytics</h1>
+        <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-slate-950 dark:text-white sm:text-3xl">Hospital Analytics</h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                 OPD throughput, token efficiency and system performance metrics
               </p>
             </div>
             <button
               onClick={fetchStats}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:w-auto"
             >
               🔄 Refresh Data
             </button>
@@ -193,17 +193,17 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md">
               <p className="text-xs uppercase tracking-wider text-blue-200 font-semibold">Queue Clearance Rate</p>
-              <p className="text-4xl font-black mt-2 font-mono">{clearanceRate}%</p>
+              <p className="mt-2 font-mono text-3xl font-black sm:text-4xl">{clearanceRate}%</p>
               <p className="text-xs text-blue-100 mt-1">{stats.completed} of {stats.totalTokens} tokens served</p>
             </div>
             <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-md">
               <p className="text-xs uppercase tracking-wider text-emerald-200 font-semibold">Patient Wait Time Saved</p>
-              <p className="text-4xl font-black mt-2 font-mono">~{timeSavedHours} hrs</p>
+              <p className="mt-2 font-mono text-3xl font-black sm:text-4xl">~{timeSavedHours} hrs</p>
               <p className="text-xs text-emerald-100 mt-1">Via automated queue scheduling</p>
             </div>
             <div className="bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl p-5 text-white shadow-md">
               <p className="text-xs uppercase tracking-wider text-purple-200 font-semibold">Active Doctor Capacity</p>
-              <p className="text-4xl font-black mt-2 font-mono">{stats.totalDoctors}</p>
+              <p className="mt-2 font-mono text-3xl font-black sm:text-4xl">{stats.totalDoctors}</p>
               <p className="text-xs text-purple-100 mt-1">Across {stats.totalDepartments} hospital departments</p>
             </div>
           </div>
@@ -211,14 +211,14 @@ export default function AdminAnalyticsPage() {
           {loading ? (
             <p className="mt-6 text-slate-500 dark:text-slate-400">Loading metrics...</p>
           ) : (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               {cards.map((card) => (
                 <div
                   key={card.label}
                   className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-center shadow-sm"
                 >
                   <p className="text-xs text-slate-500 dark:text-slate-400">{card.label}</p>
-                  <p className={`text-3xl font-black mt-1 font-mono ${card.color}`}>
+                  <p className={`mt-1 font-mono text-2xl font-black sm:text-3xl ${card.color}`}>
                     {card.value}
                   </p>
                 </div>
@@ -226,8 +226,8 @@ export default function AdminAnalyticsPage() {
             </div>
           )}
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
               <h2 className="font-bold text-slate-800 dark:text-white mb-4">
                 Token Status Breakdown
               </h2>
@@ -279,7 +279,7 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
               <h2 className="font-bold text-slate-800 dark:text-white mb-4">
                 Infrastructure Summary
               </h2>
@@ -293,7 +293,7 @@ export default function AdminAnalyticsPage() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                    className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 last:border-0 dark:border-slate-800"
                   >
                     <span className="text-slate-600 dark:text-slate-300 text-sm flex items-center gap-2">
                       <span>{item.icon}</span>

@@ -284,13 +284,13 @@ export default function DoctorDashboardPage() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors pb-16">
       <Navbar />
       <AccessGuard requiredRole="doctor">
-        <section className="mx-auto max-w-5xl px-4 py-8">
+        <section className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
           {/* Header & Doctor Cabin Switcher */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl">👨‍⚕️</span>
-                <h1 className="text-3xl font-black text-slate-950 dark:text-white">
+                <h1 className="text-2xl font-black text-slate-950 dark:text-white sm:text-3xl">
                   Doctor OPD Cabin
                 </h1>
               </div>
@@ -302,14 +302,14 @@ export default function DoctorDashboardPage() {
 
             {/* Doctor / Cabin Dropdown Selector */}
             {doctorsList.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">
                   Select Cabin:
                 </span>
                 <select
                   value={selectedDoctorId}
                   onChange={(e) => handleDoctorChange(e.target.value)}
-                  className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  className="w-full rounded-2xl border border-slate-300 bg-white p-2.5 text-xs font-bold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:max-w-sm"
                 >
                   {doctorsList.map((d) => {
                     const name = Array.isArray(d.profiles) ? d.profiles[0]?.full_name : d.profiles?.full_name;
@@ -326,8 +326,8 @@ export default function DoctorDashboardPage() {
 
           {/* Delay Broadcast Controls */}
           {queue && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center gap-2 text-xs">
+            <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="font-bold text-slate-800 dark:text-white">
                   OPD Cabin Active (Room {selectedDoctor?.room_number || "4"})
@@ -338,7 +338,7 @@ export default function DoctorDashboardPage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                 {delayMinutes > 0 ? (
                   <div className="flex items-center gap-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold">
                     <span>⚠️ Delay: +{delayMinutes}m ({delayReason})</span>
@@ -352,7 +352,7 @@ export default function DoctorDashboardPage() {
                 ) : (
                   <button
                     onClick={() => setShowDelayModal(true)}
-                    className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 px-3.5 py-1.5 rounded-xl text-xs font-bold transition"
+                    className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-bold text-amber-700 transition hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400 sm:w-auto"
                   >
                     ⏱️ Broadcast OPD Delay
                   </button>
@@ -360,7 +360,7 @@ export default function DoctorDashboardPage() {
 
                 <button
                   onClick={handleGenerateSampleTokens}
-                  className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition"
+                  className="w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400 sm:w-auto"
                 >
                   ➕ Add 3 Test Patients
                 </button>
@@ -467,7 +467,7 @@ export default function DoctorDashboardPage() {
             /* Active Live OPD Queue Console */
             <>
               {/* Top Stats Cards */}
-              <div className="mt-6 grid gap-4 grid-cols-3">
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-center shadow-sm">
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Waiting
@@ -509,7 +509,7 @@ export default function DoctorDashboardPage() {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-4xl font-black mt-2 font-mono">
+                      <h2 className="mt-2 font-mono text-3xl font-black sm:text-4xl">
                         Token #{calledToken.token_number}
                       </h2>
                       <p className="text-sm text-blue-100 mt-1">
@@ -543,7 +543,7 @@ export default function DoctorDashboardPage() {
 
               {/* Waiting Tokens Queue List */}
               <div className="mt-8">
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-xl font-black text-slate-900 dark:text-white">
                     Waiting Patients ({waitingTokens.length})
                   </h2>
@@ -584,7 +584,7 @@ export default function DoctorDashboardPage() {
                               : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                           }`}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
                             <div
                               className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-lg shadow-sm ${
                                 isEmergency
@@ -596,8 +596,8 @@ export default function DoctorDashboardPage() {
                             >
                               #{t.token_number}
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <h3 className="font-bold text-slate-900 dark:text-white text-sm">
                                   {t.profiles?.full_name || "Patient"}
                                 </h3>
@@ -612,7 +612,7 @@ export default function DoctorDashboardPage() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-400">
+                              <p className="break-words text-xs text-slate-400">
                                 Phone: {t.profiles?.phone || "N/A"} • Joined: {new Date(t.joined_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </p>
                             </div>

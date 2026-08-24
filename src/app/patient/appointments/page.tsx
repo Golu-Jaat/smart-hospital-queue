@@ -181,11 +181,11 @@ function AppointmentsContent() {
     : doctor?.profiles?.full_name || doctor?.specialization || "Doctor";
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-slate-950 dark:text-white">My Appointments</h1>
+    <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <h1 className="text-2xl font-bold text-slate-950 dark:text-white sm:text-3xl">My Appointments</h1>
 
       {doctor && (
-        <div className="mt-6 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-slate-800 p-6">
+        <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-slate-800 sm:p-6">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
             Book Appointment — {docFullName}
           </h2>
@@ -222,7 +222,7 @@ function AppointmentsContent() {
           <button
             onClick={handleBook}
             disabled={booking || !date || !time}
-            className="mt-4 rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300"
+            className="mt-4 w-full rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300 sm:w-auto"
           >
             {booking ? "Booking..." : "Confirm Appointment"}
           </button>
@@ -248,19 +248,19 @@ function AppointmentsContent() {
               return (
                 <div
                   key={a.id}
-                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 flex items-center justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:flex-row sm:items-center sm:justify-between sm:p-5"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-slate-800 dark:text-white">
                       {docName}
                     </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <p className="break-words text-sm text-slate-500 dark:text-slate-400">
                       {a.departments?.name} • {a.appointment_date} •{" "}
                       {a.slot_start}
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`w-full rounded-full px-3 py-1 text-center text-xs font-semibold sm:w-auto ${
                       a.status === "pending"
                         ? "bg-yellow-100 text-yellow-700"
                         : a.status === "confirmed"

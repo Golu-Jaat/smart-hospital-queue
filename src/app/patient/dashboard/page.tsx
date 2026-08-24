@@ -107,12 +107,12 @@ export default function PatientDashboardPage() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <p className="text-blue-600 dark:text-blue-400 font-medium">{getGreeting()} 👋</p>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white mt-1">
+            <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-white sm:text-3xl">
               {loading
                 ? "Loading..."
                 : `Welcome, ${profile?.full_name || "Patient"}!`}
@@ -132,7 +132,7 @@ export default function PatientDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               href: "/patient/hospitals",
@@ -180,7 +180,7 @@ export default function PatientDashboardPage() {
           <div className="lg:col-span-1">
             {activeToken ? (
               <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="font-semibold text-blue-100">
                     Live Queue Status
                   </h2>
@@ -190,11 +190,11 @@ export default function PatientDashboardPage() {
                 </div>
                 <div className="text-center my-4">
                   <p className="text-blue-200 text-sm">Your Token</p>
-                  <p className="text-6xl font-bold">
+                  <p className="text-5xl font-bold sm:text-6xl">
                     #{activeToken.token_number}
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-3 mt-4">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
                     <p className="text-xs text-blue-200">Serving</p>
                     <p className="font-bold text-lg">
@@ -248,7 +248,7 @@ export default function PatientDashboardPage() {
           {/* Recent Appointments */}
           <div className="lg:col-span-2">
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-5">
+              <div className="mb-5 flex items-center justify-between gap-3">
                 <h2 className="font-bold text-slate-800 dark:text-white text-lg">
                   Recent Appointments
                 </h2>
@@ -278,13 +278,13 @@ export default function PatientDashboardPage() {
                   {appointments.map((a) => (
                     <div
                       key={a.id}
-                      className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                    >
-                      <div className="flex items-center gap-4">
+                  className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4 transition hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 sm:flex-row sm:items-center sm:justify-between"
+                >
+                      <div className="flex min-w-0 items-center gap-4">
                         <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-xl flex items-center justify-center text-2xl">
                           👨‍⚕️
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-semibold text-slate-800 dark:text-white">
                             {a.doctors?.profiles?.full_name}
                           </p>
@@ -297,7 +297,7 @@ export default function PatientDashboardPage() {
                         </div>
                       </div>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(a.status)}`}
+                        className={`w-full rounded-full px-3 py-1 text-center text-xs font-semibold sm:w-auto ${getStatusColor(a.status)}`}
                       >
                         {a.status}
                       </span>
@@ -312,7 +312,7 @@ export default function PatientDashboardPage() {
               <h3 className="font-semibold text-green-800 dark:text-green-400 mb-3">
                 💡 Health Tips
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
                   { icon: "💧", tip: "Drink 8 glasses of water daily" },
                   { icon: "🏃", tip: "30 minutes exercise daily" },

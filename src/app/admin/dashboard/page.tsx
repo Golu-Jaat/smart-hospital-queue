@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
     <main className="min-h-screen bg-slate-100 dark:bg-slate-950 transition-colors">
       <Navbar />
       <AccessGuard requiredRole="admin">
-        <div className="flex">
+        <div className="flex min-w-0">
           {/* Sidebar */}
         <aside className="w-64 min-h-screen bg-blue-900 text-white p-4 hidden lg:block">
           <div className="mb-8">
@@ -220,16 +220,16 @@ export default function AdminDashboardPage() {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="min-w-0 flex-1 p-4 sm:p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard</h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 Monitor your queue system performance in real-time
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="text-sm text-slate-500 dark:text-slate-400">
                 {new Date().toLocaleDateString("en-IN", {
                   day: "2-digit",
@@ -248,7 +248,7 @@ export default function AdminDashboardPage() {
           ) : (
             <>
               {/* Stat Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {statCards.map((card) => (
                   <div
                     key={card.label}
@@ -269,7 +269,7 @@ export default function AdminDashboardPage() {
               {/* Charts Row */}
               <div className="grid lg:grid-cols-2 gap-6 mb-6">
                 {/* Line Chart */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                   <h3 className="font-semibold text-slate-800 dark:text-white mb-4">
                     Tokens Overview
                   </h3>
@@ -301,7 +301,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Pie Chart */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                   <h3 className="font-semibold text-slate-800 dark:text-white mb-4">
                     Tokens by Department
                   </h3>
@@ -376,8 +376,8 @@ export default function AdminDashboardPage() {
               {/* Bottom Row */}
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Live Queue Table */}
-                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6 lg:col-span-2">
+                  <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-semibold text-slate-800 dark:text-white">Live Queue</h3>
                     <Link
                       href="/admin/queues"
@@ -386,59 +386,61 @@ export default function AdminDashboardPage() {
                       View All
                     </Link>
                   </div>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        <th className="pb-2">Token No.</th>
-                        <th className="pb-2">Patient</th>
-                        <th className="pb-2">Department</th>
-                        <th className="pb-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentTokens.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="py-4 text-center text-slate-400 text-sm"
-                          >
-                            No tokens yet
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px]">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                          <th className="pb-2">Token No.</th>
+                          <th className="pb-2">Patient</th>
+                          <th className="pb-2">Department</th>
+                          <th className="pb-2">Status</th>
                         </tr>
-                      ) : (
-                        recentTokens.map((t) => (
-                          <tr key={t.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
-                            <td className="py-3">
-                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                                #{t.token_number}
-                              </span>
-                            </td>
-                            <td className="py-3 text-sm text-slate-700 dark:text-slate-200">
-                              {Array.isArray(t.profiles)
-                                ? t.profiles[0]?.full_name
-                                : t.profiles?.full_name || "Patient"}
-                            </td>
-                            <td className="py-3 text-sm text-slate-500 dark:text-slate-400">
-                              {Array.isArray(t.queues)
-                                ? (Array.isArray(t.queues[0]?.doctors)
-                                    ? t.queues[0]?.doctors[0]?.specialization
-                                    : t.queues[0]?.doctors?.specialization)
-                                : (Array.isArray(t.queues?.doctors)
-                                    ? t.queues?.doctors[0]?.specialization
-                                    : t.queues?.doctors?.specialization) || "General"}
-                            </td>
-                            <td className="py-3">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(t.status)}`}
-                              >
-                                {t.status}
-                              </span>
+                      </thead>
+                      <tbody>
+                        {recentTokens.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="py-4 text-center text-sm text-slate-400"
+                            >
+                              No tokens yet
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : (
+                          recentTokens.map((t) => (
+                            <tr key={t.id} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
+                              <td className="py-3">
+                                <span className="rounded bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700">
+                                  #{t.token_number}
+                                </span>
+                              </td>
+                              <td className="py-3 text-sm text-slate-700 dark:text-slate-200">
+                                {Array.isArray(t.profiles)
+                                  ? t.profiles[0]?.full_name
+                                  : t.profiles?.full_name || "Patient"}
+                              </td>
+                              <td className="py-3 text-sm text-slate-500 dark:text-slate-400">
+                                {Array.isArray(t.queues)
+                                  ? (Array.isArray(t.queues[0]?.doctors)
+                                      ? t.queues[0]?.doctors[0]?.specialization
+                                      : t.queues[0]?.doctors?.specialization)
+                                  : (Array.isArray(t.queues?.doctors)
+                                      ? t.queues?.doctors[0]?.specialization
+                                      : t.queues?.doctors?.specialization) || "General"}
+                              </td>
+                              <td className="py-3">
+                                <span
+                                  className={`rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(t.status)}`}
+                                >
+                                  {t.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* Quick Stats */}

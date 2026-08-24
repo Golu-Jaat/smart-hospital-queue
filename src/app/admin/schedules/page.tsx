@@ -90,21 +90,21 @@ export default function AdminSchedulesPage() {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
       <AccessGuard requiredRole="admin">
-        <section className="mx-auto max-w-6xl px-4 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-950">
+        <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
             Schedule Management
           </h1>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
+            className="w-full rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 sm:w-auto"
           >
             {showForm ? "Cancel" : "+ Add Schedule"}
           </button>
         </div>
 
         {showForm && (
-          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6">
+          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
             <h2 className="text-lg font-semibold mb-4">Add Doctor Schedule</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <select
@@ -153,7 +153,7 @@ export default function AdminSchedulesPage() {
             <button
               onClick={handleAdd}
               disabled={saving || !doctorId}
-              className="mt-4 rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300"
+              className="mt-4 w-full rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300 sm:w-auto"
             >
               {saving ? "Saving..." : "Save Schedule"}
             </button>
@@ -169,21 +169,21 @@ export default function AdminSchedulesPage() {
             schedules.map((s) => (
               <div
                 key={s.id}
-                className="rounded-lg border border-slate-200 bg-white p-5 flex items-center justify-between"
+                className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
               >
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-semibold text-slate-800">
                     {s.doctors?.profiles?.full_name} —{" "}
                     {s.doctors?.specialization}
                   </h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="break-words text-sm text-slate-500">
                     {DAYS[s.day_of_week]} • {s.start_time} - {s.end_time} • Max:{" "}
                     {s.max_patients} patients
                   </p>
                 </div>
                 <button
                   onClick={() => deleteSchedule(s.id)}
-                  className="rounded px-3 py-1 text-sm bg-red-100 text-red-700"
+                  className="w-full rounded bg-red-100 px-3 py-1 text-sm text-red-700 sm:w-auto"
                 >
                   Delete
                 </button>

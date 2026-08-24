@@ -90,8 +90,8 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50">
-          <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-800">
             <h3 className="font-semibold text-slate-800 dark:text-white">Notifications</h3>
             {unreadCount > 0 && (
               <button
@@ -116,7 +116,7 @@ export function NotificationBell() {
                   onClick={() => markAsRead(n.id)}
                   className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${!n.is_read ? "bg-blue-50/50 dark:bg-blue-950/30" : ""}`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex flex-wrap items-start gap-2">
                     <span
                       className={`text-xs px-2 py-1 rounded-full font-semibold ${getTypeColor(n.type)}`}
                     >
