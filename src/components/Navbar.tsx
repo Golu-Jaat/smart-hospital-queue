@@ -96,17 +96,17 @@ export function Navbar() {
   };
 
   const getFilteredNavItems = () => {
+    // Before login: show NO nav links at all
+    if (!isLoggedIn) return [];
+
     return navItems.filter((item) => {
       if (item.href.startsWith("/admin")) {
-        return isLoggedIn && userRole === "admin";
+        return userRole === "admin";
       }
       if (item.href.startsWith("/doctor")) {
-        return isLoggedIn && (userRole === "doctor" || userRole === "admin");
+        return userRole === "doctor" || userRole === "admin";
       }
-      if (item.href.startsWith("/patient")) {
-        return true;
-      }
-      return true; // TV Display and AI Assistant are public
+      return true; // Patient, TV Display, AI Assistant visible after login
     });
   };
 
