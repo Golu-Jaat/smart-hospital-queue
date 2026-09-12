@@ -21,7 +21,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
 
@@ -31,18 +32,25 @@ export default function LoginPage() {
       return;
     }
 
-    const { data, error: loginError } = await signIn(email, password);
+    try {
+      const { data, error: loginError } = await signIn(email, password);
 
-    if (loginError || !data.user) {
-      setError(loginError?.message || "Login failed.");
+      if (loginError || !data?.user) {
+        const message = loginError?.message || "Login failed.";
+        setError(
+          /invalid login credentials/i.test(message)
+            ? "Email or password is incorrect. Use Forgot Password to set a new password."
+            : message,
+        );
+        return;
+      }
+
+      const { data: profile } = await getUserProfile(data.user.id);
+      const role = (profile?.role || "patient") as UserRole;
+      router.replace(roleRoutes[role]);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: profile } = await getUserProfile(data.user.id);
-    const role = (profile?.role || "patient") as UserRole;
-    router.push(roleRoutes[role]);
-    setLoading(false);
   };
 
   return (
@@ -54,9 +62,12 @@ export default function LoginPage() {
             {error}
           </div>
         )}
-        <div className="mt-6 grid gap-4">
+        <form onSubmit={handleLogin} className="mt-6 grid gap-4">
           <input
             type="email"
+            name="email"
+            autoComplete="email"
+            required
             placeholder="Email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -64,19 +75,22 @@ export default function LoginPage() {
           />
           <input
             type="password"
+            name="password"
+            autoComplete="current-password"
+            required
             placeholder="Password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 dark:bg-slate-700 dark:text-white"
           />
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={loading || !email || !password}
             className="rounded-lg bg-blue-700 py-2 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-        </div>
+        </form>
         <p className="text-right text-sm mb-2 mt-3">
           <Link
             href="/forgot-password"

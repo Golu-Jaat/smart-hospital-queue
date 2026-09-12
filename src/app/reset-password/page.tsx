@@ -18,7 +18,6 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let active = true;
-    let timeoutId: ReturnType<typeof setTimeout>;
 
     const getUrlAuthError = () => {
       const hash = window.location.hash.startsWith("#")
@@ -52,32 +51,59 @@ export default function ResetPasswordPage() {
     const checkSession = async () => {
       const urlError = getUrlAuthError();
       if (urlError) {
-        markInvalid(decodeURIComponent(urlError.replace(/\+/g, " ")));
+        markInvalid(urlError);
         return;
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const hash = window.location.hash.startsWith("#")
+          ? window.location.hash.slice(1)
+          : window.location.hash;
+        const hashParams = new URLSearchParams(hash);
+        const queryParams = new URLSearchParams(window.location.search);
+        const tokenHash =
+          queryParams.get("token_hash") || hashParams.get("token_hash");
+        const recoveryType =
+          queryParams.get("type") || hashParams.get("type");
 
-      if (session) {
-        markReady();
-        return;
-      }
+        if (tokenHash && recoveryType === "recovery") {
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
 
-      timeoutId = setTimeout(async () => {
+          if (verifyError || !data.session) {
+            markInvalid(
+              verifyError?.message ||
+                "Reset link expired or invalid. Please request a new password reset link.",
+            );
+            return;
+          }
+
+          window.history.replaceState({}, "", "/reset-password");
+          markReady();
+          return;
+        }
+
         const {
-          data: { session: latestSession },
+          data: { session },
+          error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (latestSession) {
+        if (sessionError) {
+          markInvalid(sessionError.message);
+        } else if (session) {
           markReady();
         } else {
           markInvalid(
             "Reset link expired or invalid. Please request a new password reset link.",
           );
         }
-      }, 2500);
+      } catch {
+        markInvalid(
+          "Unable to verify this reset link. Check your internet and try again.",
+        );
+      }
     };
 
     const {
@@ -92,12 +118,12 @@ export default function ResetPasswordPage() {
 
     return () => {
       active = false;
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
 
-  const handleReset = async () => {
+  const handleReset = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (password !== confirm) {
       setError("Passwords do not match!");
       return;
@@ -110,15 +136,19 @@ export default function ResetPasswordPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await resetPassword(password);
+    try {
+      const { error } = await resetPassword(password);
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccess("Password reset successful!");
-      setTimeout(() => router.push("/login"), 2000);
+      if (error) {
+        setError(error.message);
+      } else {
+        await supabase.auth.signOut({ scope: "local" });
+        setSuccess("Password reset successful!");
+        setTimeout(() => router.replace("/login"), 1500);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -152,9 +182,12 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        <div className="space-y-4">
+        <form onSubmit={handleReset} className="space-y-4">
           <input
             type="password"
+            name="password"
+            autoComplete="new-password"
+            required
             placeholder="New Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -163,6 +196,9 @@ export default function ResetPasswordPage() {
           />
           <input
             type="password"
+            name="confirmPassword"
+            autoComplete="new-password"
+            required
             placeholder="Confirm Password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -170,13 +206,13 @@ export default function ResetPasswordPage() {
             className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-slate-700 dark:text-white"
           />
           <button
-            onClick={handleReset}
+            type="submit"
             disabled={loading || !canReset || !password || !confirm}
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
             {loading ? "Resetting..." : "Reset Password"}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -10,19 +10,25 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
 
-    const { error } = await forgotPassword(email);
+    try {
+      const { error } = await forgotPassword(email);
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccess("Password reset link sent! Check your email.");
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess(
+          "If this email is registered, a password reset link has been sent. Check your inbox and spam folder.",
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -46,22 +52,25 @@ export default function ForgotPasswordPage() {
           </div>
         )}
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
+            name="email"
+            autoComplete="email"
+            required
             placeholder="Your Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-slate-700 dark:text-white"
           />
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading || !email}
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
             {loading ? "Sending..." : "Send Reset Link"}
           </button>
-        </div>
+        </form>
 
         <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-4">
           Remember password?{" "}

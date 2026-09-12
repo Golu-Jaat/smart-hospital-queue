@@ -322,6 +322,10 @@ Redirect URLs:       https://smart-hospital-queue-mu.vercel.app/**
 Reset redirect:      https://smart-hospital-queue-mu.vercel.app/reset-password
 ```
 
+Keep both the production wildcard and exact reset route in the allow list. The app also catches a valid `PASSWORD_RECOVERY` callback that lands on the Site URL and forwards it to `/reset-password`.
+
+After changing these values, request a new recovery email. Supabase recovery links are single-use and an opened or expired link cannot be tested again.
+
 ### Demo Data
 The current Supabase project has a development/demo dataset for Bikaner:
 - 11 active hospitals
@@ -450,6 +454,12 @@ sudo tail -f /var/log/nginx/error.log
 - In Supabase Dashboard → **Settings** → **API** → verify the anon key matches
 - Check Supabase project is not paused (free tier pauses after 1 week of inactivity)
 
+### Password Reset Link Opens the Wrong Page or Fails
+1. In Supabase Dashboard → **Authentication** → **URL Configuration**, set the production Site URL and redirect allow list shown above.
+2. Request a fresh link from `/forgot-password`; do not reuse an earlier email link.
+3. Open the link in a normal browser tab and keep the tab open until `/reset-password` finishes checking the session.
+4. If the app reports a network error, verify that the browser can reach the Supabase project URL and that the Vercel Supabase environment variables match the same project.
+
 ---
 
 ## ✅ Deployment Checklist
@@ -462,6 +472,7 @@ Before going live, verify:
 - [ ] `npx tsc --noEmit` passes with **0 TypeScript errors**
 - [ ] Supabase Realtime enabled for `tokens` and `queues` tables
 - [ ] Supabase Auth Redirect URL updated to production domain
+- [ ] Fresh password-reset email opens `/reset-password` and the new password can log in
 - [ ] Row Level Security (RLS) policies enabled on all tables
 - [ ] Demo Bikaner data reviewed/replaced before real hospital launch
 - [ ] Custom domain DNS configured and HTTPS certificate active

@@ -2,6 +2,12 @@ import { supabase } from "./supabase";
 
 function normalizeAuthError(error: unknown) {
   if (error instanceof Error) {
+    if (/failed to fetch|networkerror|load failed/i.test(error.message)) {
+      return new Error(
+        "Unable to connect to the login service. Check your internet and try again.",
+      );
+    }
+
     return error;
   }
 
@@ -30,11 +36,15 @@ export async function signUp(
 
 // Login
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    return { data, error };
+  } catch (error) {
+    return { data: null, error: normalizeAuthError(error) };
+  }
 }
 
 // Logout
@@ -64,9 +74,12 @@ export async function getUserProfile(userId: string) {
 // Forgot Password
 export async function forgotPassword(email: string) {
   try {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const { data, error } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      {
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
+    );
     return { data, error };
   } catch (error) {
     return { data: null, error: normalizeAuthError(error) };

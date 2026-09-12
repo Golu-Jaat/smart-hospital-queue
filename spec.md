@@ -52,6 +52,8 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Default role assigned: `patient` on signup
 - Admin accounts must be manually promoted via Supabase Dashboard
 - Password reset via email magic link (Supabase built-in)
+- Recovery callbacks are detected globally, so a valid recovery link that falls back to the configured Site URL is forwarded to `/reset-password`
+- The reset page accepts Supabase implicit recovery sessions and `token_hash` recovery links, then clears the temporary local session after the password changes
 - JWT session persisted in browser; 0ms session cache via `localStorage` + in-memory
 
 ---
