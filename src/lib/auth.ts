@@ -1,5 +1,13 @@
 import { supabase } from "./supabase";
 
+function normalizeAuthError(error: unknown) {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error("Network request failed. Please try again.");
+}
+
 // Signup
 export async function signUp(
   email: string,
@@ -55,16 +63,24 @@ export async function getUserProfile(userId: string) {
 
 // Forgot Password
 export async function forgotPassword(email: string) {
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { data, error };
+  } catch (error) {
+    return { data: null, error: normalizeAuthError(error) };
+  }
 }
 
 // Reset Password
 export async function resetPassword(newPassword: string) {
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    return { data, error };
+  } catch (error) {
+    return { data: null, error: normalizeAuthError(error) };
+  }
 }
