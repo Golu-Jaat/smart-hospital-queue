@@ -295,6 +295,11 @@ CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 ```
 
+### Required Database Migrations
+Apply the SQL files in `supabase/migrations/` before production testing:
+- `20260912045000_create_profile_signup_trigger.sql` keeps `public.profiles` synced with new Supabase Auth users.
+- `20260912045500_add_symptom_assessment_rls_policies.sql` adds patient-owned RLS policies for symptom assessment rows.
+
 ### Enable Realtime for Tables
 In Supabase Dashboard → **Database** → **Replication**:
 - Enable Realtime for: `tokens`, `queues` tables
@@ -308,6 +313,14 @@ Redirect URLs:       https://your-app-url.vercel.app/**
 ```
 
 > ⚠️ Without this, password reset email links will fail in production.
+
+For the current Vercel deployment, use:
+
+```
+Site URL:            https://smart-hospital-queue-mu.vercel.app
+Redirect URLs:       https://smart-hospital-queue-mu.vercel.app/**
+Reset redirect:      https://smart-hospital-queue-mu.vercel.app/reset-password
+```
 
 ### Demo Data
 The current Supabase project has a development/demo dataset for Bikaner:

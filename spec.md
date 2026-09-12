@@ -48,7 +48,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 
 ### 4.1 🔐 Authentication System (`/login`, `/signup`, `/forgot-password`, `/reset-password`)
 - **Email + Password** signup and login via Supabase Auth
-- Automatic `profiles` table row creation on new user registration
+- Automatic `profiles` table row creation on new user registration via the `on_auth_user_created_create_profile` database trigger
 - Default role assigned: `patient` on signup
 - Admin accounts must be manually promoted via Supabase Dashboard
 - Password reset via email magic link (Supabase built-in)
@@ -206,6 +206,8 @@ Demo credentials:
 | `role` | `text` | `admin` / `doctor` / `patient` |
 | `avatar_url` | `text` | Base64 image or emoji avatar |
 | `created_at` | `timestamptz` | Registration timestamp |
+
+New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()`. The trigger copies `full_name`, `email`, and `phone` from Supabase Auth metadata and defaults `role` to `patient`.
 
 ### `hospitals`
 | Column | Type | Description |
