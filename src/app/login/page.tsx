@@ -11,7 +11,6 @@ const roleRoutes: Record<UserRole, string> = {
   patient: "/patient/dashboard",
   doctor: "/doctor/dashboard",
   admin: "/admin/dashboard",
-  super_admin: "/admin/dashboard",
 };
 
 export default function LoginPage() {

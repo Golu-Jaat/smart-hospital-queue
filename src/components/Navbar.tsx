@@ -8,7 +8,7 @@ import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { getCachedUserRoleSync, type UserRole } from "@/lib/rbac";
+import type { UserRole } from "@/lib/rbac";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
@@ -54,7 +54,11 @@ export function Navbar() {
         .single();
 
       setUserName(profile?.full_name || user.user_metadata?.full_name || "User");
-      setUserRole((profile?.role || user.user_metadata?.role || "patient") as UserRole);
+      setUserRole(
+        profile?.role === "admin" || profile?.role === "doctor"
+          ? profile.role
+          : "patient",
+      );
 
       setUserAvatar((current) => current || user.user_metadata?.avatar_url || "");
     } else {
@@ -63,14 +67,6 @@ export function Navbar() {
   };
 
   useEffect(() => {
-    const cached = getCachedUserRoleSync();
-    if (cached?.userId) {
-      setIsLoggedIn(true);
-      setUserName(cached.fullName);
-      setUserRole(cached.role);
-      setUserEmail(cached.email || "");
-    }
-
     fetchUserData();
 
     // Listen for profile changes

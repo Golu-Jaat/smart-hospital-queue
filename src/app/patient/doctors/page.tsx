@@ -11,7 +11,7 @@ type Doctor = {
   specialization: string;
   room_number: string;
   average_consultation_minutes: number;
-  profiles: { full_name: string };
+  display_name: string;
   departments: { name: string };
   hospitals: { name: string };
 };
@@ -27,7 +27,7 @@ function DoctorsContent() {
     const fetchDoctors = async () => {
       let query = supabase
         .from("doctors")
-        .select("*, profiles(full_name), departments(name), hospitals(name)")
+        .select("*, departments(name), hospitals(name)")
         .eq("is_active", true);
 
       if (hospitalId) {
@@ -63,7 +63,7 @@ function DoctorsContent() {
               className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-left hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition"
             >
               <h2 className="font-semibold text-slate-950 dark:text-white">
-                {d.profiles?.full_name}
+                {d.display_name || d.specialization || "Doctor"}
               </h2>
               <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">{d.specialization}</p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">

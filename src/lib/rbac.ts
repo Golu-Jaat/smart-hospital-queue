@@ -9,9 +9,6 @@ export interface UserSessionData {
   email: string | null;
 }
 
-// In-Memory Fast Cache for 0ms Route Transitions
-let inMemorySession: UserSessionData | null = null;
-
 export function isRoleAuthorized(userRole: string, requiredRole: "admin" | "doctor" | "patient"): boolean {
   if (userRole === "admin") return true; // Superuser: Admin can access everything!
   
@@ -31,27 +28,7 @@ export function isRoleAuthorized(userRole: string, requiredRole: "admin" | "doct
 }
 
 /**
- * Synchronously get cached user session in 0ms (from Memory or LocalStorage)
- */
-export function getCachedUserRoleSync(): UserSessionData | null {
-  if (inMemorySession) return inMemorySession;
-
-  if (typeof window !== "undefined") {
-    try {
-      const saved = localStorage.getItem("smart_user_session");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        inMemorySession = parsed;
-        return parsed;
-      }
-    } catch (e) {}
-  }
-
-  return null;
-}
-
-/**
- * Fetch current authenticated user's profile role from Supabase and cache it
+ * Fetch the current user's database-owned role after Supabase verifies them.
  */
 export async function getCurrentUserRole(): Promise<UserSessionData> {
   try {
@@ -60,10 +37,6 @@ export async function getCurrentUserRole(): Promise<UserSessionData> {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      inMemorySession = null;
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("smart_user_session");
-      }
       return { role: "patient", fullName: "", userId: null, email: null };
     }
 
@@ -73,7 +46,11 @@ export async function getCurrentUserRole(): Promise<UserSessionData> {
       .eq("id", user.id)
       .single();
 
-    const role = (profile?.role || user.user_metadata?.role || "patient") as UserRole;
+    const role = (
+      profile?.role === "admin" || profile?.role === "doctor"
+        ? profile.role
+        : "patient"
+    ) as UserRole;
     const fullName = profile?.full_name || user.user_metadata?.full_name || "User";
 
     const sessionData: UserSessionData = {
@@ -82,12 +59,6 @@ export async function getCurrentUserRole(): Promise<UserSessionData> {
       userId: user.id,
       email: user.email || null,
     };
-
-    // Save in memory & localStorage for instant 0ms access on subsequent clicks
-    inMemorySession = sessionData;
-    if (typeof window !== "undefined") {
-      localStorage.setItem("smart_user_session", JSON.stringify(sessionData));
-    }
 
     return sessionData;
   } catch (err) {

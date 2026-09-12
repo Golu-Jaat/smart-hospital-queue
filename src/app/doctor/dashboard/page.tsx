@@ -204,35 +204,6 @@ export default function DoctorDashboardPage() {
     }
   };
 
-  // Generate Sample Patient Tokens for Testing
-  const handleGenerateSampleTokens = async () => {
-    if (!queue) return;
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const nextTokenNum = tokens.length + 1;
-      const sampleNames = ["Amit Verma", "Sunita Devi", "Rohan Mehta"];
-      const priorities = ["emergency", "senior", "regular"];
-
-      for (let i = 0; i < 3; i++) {
-        await supabase.from("tokens").insert({
-          queue_id: queue.id,
-          patient_id: user?.id,
-          token_number: nextTokenNum + i,
-          status: "waiting",
-          priority: priorities[i % 3],
-          estimated_wait_minutes: (i + 1) * 15,
-        });
-      }
-
-      await loadDoctorQueue(selectedDoctorId);
-    } catch (err: any) {
-      alert("Error adding sample tokens: " + err.message);
-    }
-  };
-
   const updateToken = async (id: string, status: string) => {
     const updates: Record<string, any> = { status };
     if (status === "called") {
@@ -358,12 +329,6 @@ export default function DoctorDashboardPage() {
                   </button>
                 )}
 
-                <button
-                  onClick={handleGenerateSampleTokens}
-                  className="w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400 sm:w-auto"
-                >
-                  ➕ Add 3 Test Patients
-                </button>
               </div>
             </div>
           )}
@@ -560,18 +525,12 @@ export default function DoctorDashboardPage() {
                     <p className="text-slate-500 dark:text-slate-400 text-sm">
                       Waiting queue is empty.
                     </p>
-                    <button
-                      onClick={handleGenerateSampleTokens}
-                      className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-                    >
-                      ➕ Add 3 Test Patients to Queue
-                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {waitingTokens.map((t) => {
                       const isEmergency = t.priority === "emergency";
-                      const isSenior = t.priority === "senior";
+                      const isUrgent = t.priority === "urgent";
 
                       return (
                         <div
@@ -579,7 +538,7 @@ export default function DoctorDashboardPage() {
                           className={`rounded-2xl border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
                             isEmergency
                               ? "bg-red-500/10 border-red-500/30"
-                              : isSenior
+                              : isUrgent
                               ? "bg-purple-500/10 border-purple-500/30"
                               : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                           }`}
@@ -589,7 +548,7 @@ export default function DoctorDashboardPage() {
                               className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-lg shadow-sm ${
                                 isEmergency
                                   ? "bg-red-600 text-white"
-                                  : isSenior
+                                  : isUrgent
                                   ? "bg-purple-600 text-white"
                                   : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400"
                               }`}
@@ -606,9 +565,9 @@ export default function DoctorDashboardPage() {
                                     🚨 Urgent
                                   </span>
                                 )}
-                                {isSenior && (
+                                {isUrgent && (
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-600 text-white">
-                                    👵 Senior
+                                    Urgent
                                   </span>
                                 )}
                               </div>

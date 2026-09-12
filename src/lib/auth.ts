@@ -22,12 +22,13 @@ export async function signUp(
   phone: string,
 ) {
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: email.trim().toLowerCase(),
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/login`,
       data: {
-        full_name: fullName,
-        phone: phone,
+        full_name: fullName.trim(),
+        phone: phone.trim(),
       },
     },
   });

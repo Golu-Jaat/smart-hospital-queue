@@ -1,10 +1,10 @@
-export type UserRole = "patient" | "doctor" | "admin" | "super_admin";
+export type UserRole = "patient" | "doctor" | "admin";
 
 export type HospitalType = "government" | "private";
 
-export type AppointmentStatus = "booked" | "checked_in" | "completed" | "cancelled";
+export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
-export type QueueStatus = "open" | "paused" | "closed";
+export type QueueStatus = "active" | "paused" | "closed";
 
 export type TokenPriority = "normal" | "urgent" | "emergency";
 
@@ -44,6 +44,7 @@ export type Doctor = {
   hospital_id: string;
   department_id: string;
   profile_id: string;
+  display_name: string;
   specialization: string;
   room_number: string | null;
   average_consultation_minutes: number;

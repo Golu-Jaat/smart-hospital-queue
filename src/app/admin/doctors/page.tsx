@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
-import { supabase, createIsolatedClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { AccessGuard } from "@/components/AccessGuard";
 
 type Hospital = { id: string; name: string };
@@ -34,6 +34,7 @@ export default function AdminDoctorsPage() {
   const [avgTime, setAvgTime] = useState("10");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     fetchAll();
@@ -66,45 +67,36 @@ export default function AdminDoctorsPage() {
   const handleAdd = async () => {
     setSaving(true);
     setError("");
+    setSuccess("");
 
-    // Create auth user using isolated client to protect admin session
-    const isolatedClient = createIsolatedClient();
-    const { data: authData, error: authError } = await isolatedClient.auth.signUp({
-      email,
-      password: "Doctor@123",
-      options: {
-        data: {
-          full_name: fullName,
-          role: "doctor",
-        },
-      },
-    });
+    try {
+      const response = await fetch("/api/admin/doctors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          email,
+          hospitalId,
+          departmentId,
+          specialization,
+          roomNumber: room,
+          averageConsultationMinutes: Number(avgTime),
+        }),
+      });
+      const result = (await response.json()) as { error?: string; message?: string };
 
-    if (authError || !authData.user) {
-      setError(authError?.message || "Failed to create user");
-      setSaving(false);
+      if (!response.ok) {
+        setError(result.error || "Failed to create doctor.");
+        return;
+      }
+
+      setSuccess(result.message || "Doctor invitation sent.");
+    } catch {
+      setError("Unable to reach the doctor invitation service.");
       return;
+    } finally {
+      setSaving(false);
     }
-
-    // Create profile
-    await supabase.from("profiles").insert({
-      id: authData.user.id,
-      full_name: fullName,
-      email,
-      role: "doctor",
-      hospital_id: hospitalId,
-    });
-
-    // Create doctor
-    await supabase.from("doctors").insert({
-      hospital_id: hospitalId,
-      department_id: departmentId,
-      profile_id: authData.user.id,
-      specialization,
-      room_number: room,
-      average_consultation_minutes: parseInt(avgTime),
-      is_active: true,
-    });
 
     setShowForm(false);
     setFullName("");
@@ -114,8 +106,7 @@ export default function AdminDoctorsPage() {
     setAvgTime("10");
     setHospitalId("");
     setDepartmentId("");
-    fetchAll();
-    setSaving(false);
+    await fetchAll();
   };
 
   const toggleActive = async (id: string, current: boolean) => {
@@ -133,12 +124,22 @@ export default function AdminDoctorsPage() {
             Doctor Management
           </h1>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm);
+              setError("");
+              setSuccess("");
+            }}
             className="w-full rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 sm:w-auto"
           >
             {showForm ? "Cancel" : "+ Add Doctor"}
           </button>
         </div>
+
+        {success && (
+          <p className="mt-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+            {success}
+          </p>
+        )}
 
         {showForm && (
           <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
@@ -152,6 +153,7 @@ export default function AdminDoctorsPage() {
                 className="rounded-lg border border-slate-300 px-4 py-2"
               />
               <input
+                type="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -203,12 +205,17 @@ export default function AdminDoctorsPage() {
               />
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              Default password: Doctor@123 (doctor can change later)
+              The doctor will receive a secure email invitation to set a password.
             </p>
             <button
               onClick={handleAdd}
               disabled={
-                saving || !fullName || !email || !hospitalId || !departmentId
+                saving ||
+                !fullName ||
+                !email ||
+                !hospitalId ||
+                !departmentId ||
+                !specialization
               }
               className="mt-4 w-full rounded-lg bg-blue-700 px-6 py-2 text-white hover:bg-blue-800 disabled:bg-slate-300 sm:w-auto"
             >

@@ -1,10 +1,10 @@
 # 📋 SmartQueue — Technical Specification Document
 
-**Version:** 1.0  
+**Version:** 1.1
 **Author:** Golu Jaat  
 **Project:** Smart Hospital OPD Queue Management System  
-**Last Updated:** August 2026  
-**Status:** ✅ Active Development
+**Last Updated:** September 12, 2026
+**Status:** Production Hardening
 
 ---
 
@@ -40,7 +40,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 | **Patient** | ❌ Blocked | ❌ Blocked | ✅ Full Access | ✅ Full Access |
 | **Guest (Not Logged In)** | ❌ Blocked | ❌ Blocked | ❌ Blocked | ✅ View Only |
 
-> **Super Admin Rule:** Admin role has **superuser privileges** — can access and manage all portals simultaneously.
+> The application `admin` role can use all portals, but it is not a PostgreSQL superuser. Database access still passes through RLS or a narrowly scoped server-only operation.
 
 ---
 
@@ -54,12 +54,16 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Password reset via email magic link (Supabase built-in)
 - Recovery intent is captured before hydration and detected globally, so a valid recovery link that falls back to the configured Site URL is reliably forwarded to `/reset-password`
 - The reset page accepts Supabase implicit recovery sessions and `token_hash` recovery links, then clears the temporary local session after the password changes
-- JWT session persisted in browser; 0ms session cache via `localStorage` + in-memory
+- Supabase session persisted in cookies through `@supabase/ssr`
+- Next.js Proxy validates JWT claims and reads the database-owned `profiles.role` before serving protected routes
+- `user_metadata.role` and browser `localStorage` are never trusted for authorization
+- Signup metadata can set profile fields, but every new account is forced to the `patient` role by the database trigger
 
 ---
 
 ### 4.2 📺 Public TV Waiting Room Display (`/display`)
 - **Real-time** token updates via Supabase PostgreSQL WebSocket subscriptions
+- Public screens show token numbers, doctor names, departments, and rooms; patient names are not exposed
 - Currently serving token shown in **large bold "Now Calling" banner**
 - Next 5 upcoming tokens shown in animated waiting list
 - **Dual-tone Web Audio API chime** fires on each new token call (no external audio file needed)
@@ -76,6 +80,8 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Accepts symptom description in **Hindi or English**
 - Gemini AI runs through a server-side API route (`/api/ai-assistant`) so the API key is never exposed in the browser
 - Fast local medical rule fallback returns safe department triage if Gemini is slow, unavailable, or incomplete
+- Gemini calls are aborted after 2.5 seconds; the local evaluator responds when the upstream call times out
+- AI requests are limited to 12 requests per minute per hashed client address, with a local server fallback if the distributed limiter is temporarily unavailable
 - Gemini AI analyzes symptoms → recommends appropriate medical department
   - e.g. chest pain → Cardiology; joint pain → Orthopedics; child fever → Pediatrics
 - **1-click navigation** to book appointment with suggested specialist
@@ -97,15 +103,11 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 ### 4.5 👨‍⚕️ Doctor OPD Cabin Console (`/doctor/dashboard`)
 - **Multi-cabin Selector:** Dropdown to switch between registered doctors/rooms
 - **1-Click Queue Initialization:** Creates today's active queue in Supabase with one click
-- **Priority Triage System:**
-  - 🚨 Emergency — shown in red, fast-tracked
-  - 👵 Senior Citizen — shown in purple, priority queue
-  - Regular — standard FIFO order
+- **Priority Triage System:** `normal`, `urgent`, and `emergency`
 - **Patient Call Actions:** Call → Complete (with prescription notes) / Skip
 - **OPD Delay Broadcast:** +15m / +30m / +45m / +60m delay announcement to all patients
 - **Consultation Notes:** Attach medical advice to completed token record
 - **Real-time token sync:** Supabase subscription updates without page refresh
-- **"Add 3 Test Patients"** button for admin/doctor testing
 - **Web Audio chime** fires on each patient call
 
 ---
@@ -134,6 +136,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Register doctors and link to hospital + department
 - Fields: Full Name (profile link), Specialization, Room Number, Avg Consultation Time (minutes)
 - Active/Inactive toggle per doctor
+- New doctors are invited by email through an admin-only server route; there is no shared default password
 
 #### Schedule Management (`/admin/schedules`)
 - Per-doctor OPD timing setup
@@ -159,6 +162,8 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 ### 4.8 📅 Patient Appointments (`/patient/appointments`)
 - List of all patient's booked OPD tokens with status
 - Filter by: All / Waiting / Completed / Skipped
+- Appointment, queue, token number, and notification are created in one atomic PostgreSQL function
+- Unique doctor/date/slot and queue/token constraints prevent double booking and duplicate token numbers under concurrency
 
 ---
 
@@ -173,27 +178,20 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 
 The Supabase project currently includes a Bikaner demo dataset for development and product demos:
 
-- **11 active Bikaner hospitals**
-- **66 active departments/sections** across those hospitals
+- **12 active Bikaner hospitals**
+- **67 active departments/sections** across those hospitals
   - General Medicine
   - Emergency
   - Pediatrics
   - Orthopedics
   - Gynecology
   - Cardiology
-- **11 active demo doctors** linked to hospital + department + room number
-- **66 doctor schedules** for Monday-Saturday, `09:00-14:00`
-- **6 demo patients**
-- **6 sample appointments** dated `2026-08-25` to `2026-08-27`
+- **12 active demo doctors** linked to hospital + department + room number
+- **67 active doctor schedules**
+- **9 patient profiles**
+- **14 sample appointments**
 
-Demo credentials:
-
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| Patient | `patient.rohit.soni@smartqueue.demo` | `Patient@123` |
-| Doctor accounts | `dr.*@smartqueue.demo` | `Doctor@123` |
-
-> Demo doctors and patients are synthetic records for testing. Do not treat them as real hospital staff or real patient data.
+> Demo doctors and patients are synthetic records for testing. Production credentials are not documented or shared in the repository.
 
 ---
 
@@ -236,6 +234,7 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 | :--- | :--- | :--- |
 | `id` | `uuid` (PK) | Doctor ID |
 | `profile_id` | `uuid` (FK → profiles) | Linked user account |
+| `display_name` | `text` | Privacy-safe public doctor name synchronized from the linked profile |
 | `hospital_id` | `uuid` (FK → hospitals) | Hospital |
 | `department_id` | `uuid` (FK → departments) | Department |
 | `specialization` | `text` | Medical specialty |
@@ -272,8 +271,7 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 | `patient_id` | `uuid` (FK → profiles) | Patient |
 | `token_number` | `int` | Assigned token number |
 | `status` | `text` | `waiting` / `called` / `completed` / `skipped` |
-| `priority` | `text` | `regular` / `senior` / `emergency` |
-| `estimated_wait_minutes` | `int` | Predicted wait time |
+| `priority` | `text` | `normal` / `urgent` / `emergency` |
 | `joined_at` | `timestamptz` | Booking timestamp |
 | `called_at` | `timestamptz` | When doctor called this token |
 | `completed_at` | `timestamptz` | Consultation end time |
@@ -289,7 +287,7 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 | **Language** | TypeScript 5 (Strict Mode) |
 | **Styling** | Tailwind CSS 4 (Dark Mode, 3D Glassmorphism) |
 | **Database** | Supabase (PostgreSQL 15 + Realtime WebSockets) |
-| **Auth** | Supabase Auth (JWT, Email/Password) |
+| **Auth** | Supabase Auth + `@supabase/ssr` cookie sessions |
 | **Audio** | Web Audio API (Oscillator chime synthesis) |
 | **Voice** | Web Speech API (SpeechRecognition + SpeechSynthesis) |
 | **Charts** | Recharts |
@@ -300,9 +298,10 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 
 ## 7. ⚡ Performance Optimizations
 
-- **0ms session cache:** `getCachedUserRoleSync()` reads from in-memory → `localStorage` → Supabase (waterfall)
-- **Stale-While-Revalidate:** Pages render instantly with cached data; background re-validation updates silently
-- **Realtime Subscriptions:** Scoped per `queue_id` to minimize WebSocket payload
+- **Verified route gate:** Proxy refreshes cookie sessions and validates claims before protected routes render
+- **RLS helper indexes:** Doctor ownership, queue ownership, and patient lookups use indexed foreign keys
+- **Realtime publication:** Limited to `queues`, `tokens`, and `notifications`
+- **Department cache:** AI route caches the active department list for five minutes
 - **Next.js Static Generation:** 21/22 routes are statically pre-rendered at build time
 - **`devIndicators: false`** in `next.config.js` — no dev watermarks in production
 

@@ -10,7 +10,7 @@ type Appointment = {
   appointment_date: string;
   slot_start: string;
   status: string;
-  doctors: { specialization: string; profiles: { full_name: string } };
+  doctors: { specialization: string; display_name: string };
   departments: { name: string };
 };
 
@@ -23,7 +23,7 @@ type Token = {
     doctors: {
       average_consultation_minutes: number;
       room_number: string;
-      profiles: { full_name: string };
+      display_name: string;
     };
   };
 };
@@ -55,7 +55,7 @@ export default function PatientDashboardPage() {
     const { data: appts } = await supabase
       .from("appointments")
       .select(
-        "*, doctors(specialization, profiles(full_name)), departments(name)",
+        "*, doctors(specialization, display_name), departments(name)",
       )
       .eq("patient_id", user.id)
       .order("appointment_date", { ascending: false })
@@ -65,7 +65,7 @@ export default function PatientDashboardPage() {
     const { data: tokens } = await supabase
       .from("tokens")
       .select(
-        "*, queues(current_token_number, doctors(average_consultation_minutes, room_number, profiles(full_name)))",
+        "*, queues(current_token_number, doctors(average_consultation_minutes, room_number, display_name))",
       )
       .eq("patient_id", user.id)
       .eq("status", "waiting")
@@ -213,7 +213,7 @@ export default function PatientDashboardPage() {
                 <div className="mt-4 bg-white bg-opacity-10 rounded-xl p-3">
                   <p className="text-xs text-blue-200">Doctor</p>
                   <p className="font-semibold">
-                    {activeToken.queues?.doctors?.profiles?.full_name}
+                    {activeToken.queues?.doctors?.display_name || "Doctor"}
                   </p>
                   <p className="text-xs text-blue-200">
                     Room: {activeToken.queues?.doctors?.room_number}
@@ -286,7 +286,7 @@ export default function PatientDashboardPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-800 dark:text-white">
-                            {a.doctors?.profiles?.full_name}
+                            {a.doctors?.display_name || "Doctor"}
                           </p>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
                             {a.departments?.name}

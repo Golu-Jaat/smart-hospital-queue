@@ -12,7 +12,7 @@ type Doctor = {
   average_consultation_minutes: number;
   hospital_id: string;
   department_id: string;
-  profiles: { full_name: string };
+  display_name: string;
   departments: { name: string };
   hospitals: { name: string };
 };
@@ -22,8 +22,15 @@ type Appointment = {
   appointment_date: string;
   slot_start: string;
   status: string;
-  doctors: { specialization: string; profiles: { full_name: string } };
+  doctors: { specialization: string; display_name: string };
   departments: { name: string };
+};
+
+type BookingResult = {
+  appointment_id: string;
+  queue_id: string;
+  token_id: string;
+  token_number: number;
 };
 
 function AppointmentsContent() {
@@ -53,7 +60,7 @@ function AppointmentsContent() {
     if (doctorId) {
       const { data: doc } = await supabase
         .from("doctors")
-        .select("*, profiles(full_name), departments(name), hospitals(name)")
+        .select("*, departments(name), hospitals(name)")
         .eq("id", doctorId)
         .single();
       setDoctor(doc);
@@ -63,7 +70,7 @@ function AppointmentsContent() {
       const { data: appts } = await supabase
         .from("appointments")
         .select(
-          "*, doctors(specialization, profiles(full_name)), departments(name)",
+          "*, doctors(specialization, display_name), departments(name)",
         )
         .eq("patient_id", user.id)
         .order("appointment_date", { ascending: false });
@@ -78,107 +85,48 @@ function AppointmentsContent() {
     setError("");
     setSuccess("");
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user || !doctor) {
+    if (!doctor) {
       setError("Please login first");
       setBooking(false);
       return;
     }
 
-    const { error: bookError } = await supabase.from("appointments").insert({
-      patient_id: user.id,
-      doctor_id: doctor.id,
-      department_id: doctor.department_id,
-      appointment_date: date,
-      slot_start: time,
-      slot_end: time,
-      status: "pending",
-    });
+    const { data, error: bookError } = await supabase.rpc(
+      "book_appointment_atomic",
+      {
+        requested_doctor_id: doctor.id,
+        requested_date: date,
+        requested_slot_start: time,
+      },
+    );
 
     if (bookError) {
-      setError(bookError.message);
-    } else {
-      const todayStr = new Date().toISOString().split("T")[0];
-      const isForToday = date === todayStr;
-
-      // Find or auto-initialize queue for doctor
-      let { data: queue } = await supabase
-        .from("queues")
-        .select("id, current_token_number")
-        .eq("doctor_id", doctor.id)
-        .eq("status", "active")
-        .eq("queue_date", date)
-        .maybeSingle();
-
-      // If queue doesn't exist for today, automatically start it
-      if (!queue && isForToday) {
-        const { data: newQueue } = await supabase
-          .from("queues")
-          .insert({
-            doctor_id: doctor.id,
-            hospital_id: doctor.hospital_id,
-            department_id: doctor.department_id,
-            queue_date: date,
-            current_token_number: 0,
-            status: "active",
-          })
-          .select("id, current_token_number")
-          .single();
-
-        queue = newQueue;
-      }
-
-      if (queue) {
-        // Count existing tokens in this queue to get accurate sequential number
-        const { count: tokenCount } = await supabase
-          .from("tokens")
-          .select("*", { count: "exact", head: true })
-          .eq("queue_id", queue.id);
-
-        const newToken = (tokenCount || 0) + 1;
-
-        const { data: tokenData } = await supabase
-          .from("tokens")
-          .insert({
-            queue_id: queue.id,
-            patient_id: user.id,
-            token_number: newToken,
-            priority: "normal",
-            status: "waiting",
-            joined_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        // Notification send karo
-        await supabase.from("notifications").insert({
-          patient_id: user.id,
-          message: `Your token #${newToken} has been generated successfully! You can track live queue status.`,
-          type: "token_booked",
-          is_read: false,
-        });
-
-        setSuccess(`Appointment confirmed! Token #${newToken} generated.`);
-
-        if (tokenData?.id) {
-          router.push(`/patient/queue/${tokenData.id}`);
-          return;
-        }
-      } else {
-        setSuccess(`Appointment booked for ${date}! Your token will be activated on the appointment date.`);
-      }
-      setDate("");
-      setTime("");
-      fetchData();
+      setError(
+        /already has an appointment/i.test(bookError.message)
+          ? "That time slot was just booked. Please choose another time."
+          : bookError.message,
+      );
+      setBooking(false);
+      return;
     }
+
+    const result = (data as BookingResult[] | null)?.[0];
+    if (!result?.token_id) {
+      setError("Booking completed without a queue token. Please contact support.");
+      setBooking(false);
+      return;
+    }
+
+    setSuccess(
+      `Appointment confirmed. Token #${result.token_number} generated.`,
+    );
+    setDate("");
+    setTime("");
+    router.push(`/patient/queue/${result.token_id}`);
     setBooking(false);
   };
 
-  const docFullName = Array.isArray(doctor?.profiles)
-    ? doctor?.profiles[0]?.full_name
-    : doctor?.profiles?.full_name || doctor?.specialization || "Doctor";
+  const docFullName = doctor?.display_name || doctor?.specialization || "Doctor";
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
@@ -240,10 +188,8 @@ function AppointmentsContent() {
         ) : (
           <div className="grid gap-4">
             {appointments.map((a) => {
-              const docObj = a.doctors as any;
-              const docName = Array.isArray(docObj?.profiles)
-                ? docObj?.profiles[0]?.full_name
-                : docObj?.profiles?.full_name || docObj?.specialization || "Doctor";
+              const docName =
+                a.doctors?.display_name || a.doctors?.specialization || "Doctor";
 
               return (
                 <div

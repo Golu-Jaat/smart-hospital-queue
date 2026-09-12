@@ -20,7 +20,7 @@ type TokenData = {
       specialization: string;
       room_number: string;
       average_consultation_minutes: number;
-      profiles: { full_name: string };
+      display_name: string;
     };
   };
   profiles: { full_name: string };
@@ -59,7 +59,7 @@ export default function QueueStatusPage() {
     const { data } = await supabase
       .from("tokens")
       .select(
-        "*, queues(id, current_token_number, status, doctors(specialization, room_number, average_consultation_minutes, profiles(full_name))), profiles(full_name)",
+        "*, queues(id, current_token_number, status, doctors(specialization, room_number, average_consultation_minutes, display_name)), profiles(full_name)",
       )
       .eq("id", tokenId)
       .single();
@@ -147,7 +147,7 @@ export default function QueueStatusPage() {
             <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:p-6">
               <h2 className="font-semibold text-slate-800 dark:text-white">Doctor Info</h2>
               <p className="mt-2 text-slate-600 dark:text-slate-300">
-                {token.queues?.doctors?.profiles?.full_name}
+                {token.queues?.doctors?.display_name || "Doctor"}
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {token.queues?.doctors?.specialization}
@@ -179,7 +179,7 @@ export default function QueueStatusPage() {
               tokenId={token.id}
               tokenNumber={token.token_number}
               patientName={token.profiles?.full_name}
-              doctorName={token.queues?.doctors?.profiles?.full_name}
+              doctorName={token.queues?.doctors?.display_name || "Doctor"}
               departmentName={token.queues?.doctors?.specialization}
               roomNumber={token.queues?.doctors?.room_number}
             />

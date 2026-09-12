@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUserRole, getCachedUserRoleSync, isRoleAuthorized, UserRole } from "@/lib/rbac";
+import { getCurrentUserRole, isRoleAuthorized, UserRole } from "@/lib/rbac";
 import Link from "next/link";
 
 interface AccessGuardProps {
@@ -10,15 +10,10 @@ interface AccessGuardProps {
 }
 
 export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
-  // Read instant cache synchronously (0ms)
-  const cached = typeof window !== "undefined" ? getCachedUserRoleSync() : null;
-  const initialAuthorized = cached?.userId ? isRoleAuthorized(cached.role, requiredRole) : false;
-  const initialLoggedIn = Boolean(cached?.userId);
-
-  const [checking, setChecking] = useState(!cached); // If cache exists, 0ms delay!
-  const [authorized, setAuthorized] = useState(initialAuthorized);
-  const [userRole, setUserRole] = useState<UserRole>(cached?.role || "patient");
-  const [isLoggedIn, setIsLoggedIn] = useState(initialLoggedIn);
+  const [checking, setChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>("patient");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     async function verifyAccess() {
@@ -42,8 +37,7 @@ export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
     verifyAccess();
   }, [requiredRole]);
 
-  // If checking and no initial cache, show minimal smooth loader
-  if (checking && !authorized) {
+  if (checking) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
         <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
@@ -136,6 +130,5 @@ export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
     );
   }
 
-  // Case 3: Fully Authorized (0ms instant render)
   return <>{children}</>;
 }

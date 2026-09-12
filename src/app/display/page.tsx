@@ -15,7 +15,6 @@ type QueueRoom = {
   departmentId: string;
   currentTokenNumber: number;
   currentTokenId?: string;
-  patientName?: string;
   status: string;
   lastUpdated?: number;
 };
@@ -25,7 +24,6 @@ type UpcomingToken = {
   tokenNumber: number;
   doctorName: string;
   roomNumber: string;
-  patientName: string;
   departmentName: string;
 };
 
@@ -92,14 +90,14 @@ export default function WaitingRoomDisplayPage() {
     const { data: queuesData } = await supabase
       .from("queues")
       .select(
-        "id, current_token_number, status, hospital_id, department_id, doctors(room_number, profiles(full_name)), hospitals(name), departments(name)"
+        "id, current_token_number, status, hospital_id, department_id, doctors(room_number, display_name), hospitals(name), departments(name)"
       )
       .eq("queue_date", today);
 
     // 3. Fetch active called & waiting tokens
     const { data: tokensData } = await supabase
       .from("tokens")
-      .select("id, queue_id, token_number, status, profiles(full_name), queues(doctor_id, doctors(room_number, profiles(full_name)), departments(name))")
+      .select("id, queue_id, token_number, status, queues(doctor_id, doctors(room_number, display_name), departments(name))")
       .in("status", ["called", "waiting"])
       .order("token_number", { ascending: true });
 
@@ -109,27 +107,16 @@ export default function WaitingRoomDisplayPage() {
           (t: any) => t.queue_id === q.id && t.status === "called"
         );
 
-        const docProfiles = (q as any)?.doctors?.profiles;
-        const docProfile = Array.isArray(docProfiles)
-          ? docProfiles[0]?.full_name
-          : docProfiles?.full_name;
-
-        const patientProfiles = (activeToken as any)?.profiles;
-        const patientProfile = Array.isArray(patientProfiles)
-          ? patientProfiles[0]?.full_name
-          : patientProfiles?.full_name;
-
         return {
           queueId: q.id,
           roomNumber: q.doctors?.room_number || "OPD",
-          doctorName: docProfile || "Doctor",
+          doctorName: q.doctors?.display_name || "Doctor",
           departmentName: q.departments?.name || "General",
           hospitalName: q.hospitals?.name || "Smart Hospital",
           hospitalId: q.hospital_id,
           departmentId: q.department_id,
           currentTokenNumber: activeToken ? activeToken.token_number : q.current_token_number,
           currentTokenId: activeToken?.id,
-          patientName: patientProfile,
           status: q.status,
         };
       });
@@ -141,20 +128,14 @@ export default function WaitingRoomDisplayPage() {
         .filter((t: any) => t.status === "waiting")
         .slice(0, 10)
         .map((t: any) => {
-          const pName = Array.isArray(t.profiles)
-            ? t.profiles[0]?.full_name
-            : t.profiles?.full_name || "Patient";
-
           const queueObj = Array.isArray(t.queues) ? t.queues[0] : t.queues;
           const docObj = Array.isArray(queueObj?.doctors) ? queueObj?.doctors[0] : queueObj?.doctors;
-          const docProf = Array.isArray(docObj?.profiles) ? docObj?.profiles[0]?.full_name : docObj?.profiles?.full_name;
 
           return {
             id: t.id,
             tokenNumber: t.token_number,
-            doctorName: docProf || "Doctor",
+            doctorName: docObj?.display_name || "Doctor",
             roomNumber: docObj?.room_number || "OPD",
-            patientName: pName,
             departmentName: queueObj?.departments?.name || "General",
           };
         });
@@ -180,12 +161,12 @@ export default function WaitingRoomDisplayPage() {
             // Fetch doctor details for speech announcement
             const { data: queueInfo } = await supabase
               .from("queues")
-              .select("doctors(room_number, profiles(full_name)), departments(name)")
+              .select("doctors(room_number, display_name), departments(name)")
               .eq("id", payload.new.queue_id)
               .single();
 
             const docObj = Array.isArray((queueInfo as any)?.doctors) ? (queueInfo as any)?.doctors[0] : (queueInfo as any)?.doctors;
-            const docName = Array.isArray(docObj?.profiles) ? docObj?.profiles[0]?.full_name : docObj?.profiles?.full_name || "";
+            const docName = docObj?.display_name || "";
             const roomNum = docObj?.room_number || "";
 
             if (soundEnabledRef.current) {
@@ -416,11 +397,6 @@ export default function WaitingRoomDisplayPage() {
                         {room.currentTokenNumber > 0 ? `#${room.currentTokenNumber}` : "—"}
                       </span>
                     </div>
-                    {room.patientName && (
-                      <p className="text-sm font-medium text-slate-300 mt-2 truncate">
-                        👤 {room.patientName}
-                      </p>
-                    )}
                   </div>
 
                   {/* Status Indicator */}
@@ -455,7 +431,7 @@ export default function WaitingRoomDisplayPage() {
                   className="flex items-center gap-1.5 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 flex-shrink-0"
                 >
                   <span className="font-bold text-amber-400 font-mono">#{u.tokenNumber}</span>
-                  <span className="text-slate-300 font-medium">{u.patientName}</span>
+                  <span className="text-slate-300 font-medium">Waiting</span>
                   <span className="text-slate-500 text-[10px]">({u.roomNumber})</span>
                 </div>
               ))}

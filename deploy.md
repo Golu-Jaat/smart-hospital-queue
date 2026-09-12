@@ -1,8 +1,8 @@
 # 🚀 SmartQueue — Deployment Guide
 
-**Version:** 1.0  
+**Version:** 1.1
 **Author:** Golu Jaat  
-**Last Updated:** August 2026
+**Last Updated:** September 12, 2026
 
 ---
 
@@ -54,19 +54,25 @@ Add these values (get from your Supabase project dashboard):
 ```env
 # ─── Supabase ──────────────────────────────────────────────
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-public-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+# Legacy alternative: NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Server-only: secure doctor invitations and distributed AI limits
+SUPABASE_SECRET_KEY=your-supabase-secret-key
 
 # ─── AI Assistant ──────────────────────────────────────────
 GEMINI_API_KEY=your-gemini-api-key
+AI_RATE_LIMIT_SALT=replace-with-a-long-random-secret
 ```
 
 **Where to find these values:**
 1. Go to https://supabase.com → Your Project
 2. Click **Settings** → **API**
-3. Copy **Project URL** and **anon public** key
+3. Copy **Project URL**, the publishable/anon key, and a server-only secret key
 
 For Gemini, create or copy the key from Google AI Studio and save it as `GEMINI_API_KEY`.
 Do **not** use `NEXT_PUBLIC_GEMINI_API_KEY`; `NEXT_PUBLIC_` variables are bundled into the browser.
+Never prefix `SUPABASE_SECRET_KEY` with `NEXT_PUBLIC_`; it bypasses normal RLS and must stay on the server.
 
 > ⚠️ **IMPORTANT:** Never commit `.env.local` to Git. It is already listed in `.gitignore`.
 
@@ -136,10 +142,12 @@ In the Vercel project setup screen:
 | Key | Value |
 | :--- | :--- |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `your-anon-key` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `your-publishable-key` |
+| `SUPABASE_SECRET_KEY` | `your-server-only-supabase-secret` |
 | `GEMINI_API_KEY` | `your-gemini-api-key` |
+| `AI_RATE_LIMIT_SALT` | `a-long-random-server-secret` |
 
-Keep `GEMINI_API_KEY` server-only. Never add `NEXT_PUBLIC_GEMINI_API_KEY` in production.
+Keep `GEMINI_API_KEY`, `SUPABASE_SECRET_KEY`, and `AI_RATE_LIMIT_SALT` server-only. Never add `NEXT_PUBLIC_` to these variables.
 
 ### Step 4: Deploy
 Click **"Deploy"** — Vercel will automatically:
@@ -167,8 +175,10 @@ Go to https://railway.app → Sign up with GitHub
 In Railway project → **Variables** tab:
 ```
 NEXT_PUBLIC_SUPABASE_URL = https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY = your-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = your-publishable-key
+SUPABASE_SECRET_KEY = your-server-only-supabase-secret
 GEMINI_API_KEY = your-gemini-api-key
+AI_RATE_LIMIT_SALT = your-long-random-secret
 ```
 
 ### Step 4: Set Build Command
@@ -215,7 +225,7 @@ npm install
 
 # Create environment file
 nano .env.local
-# Add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and GEMINI_API_KEY, save with Ctrl+X
+# Add all variables from Section 2, save with Ctrl+X
 
 # Build production
 npm run build
@@ -281,28 +291,25 @@ pm2 restart smartqueue
 
 ## 7. Supabase Production Config
 
-### Enable Row Level Security (RLS)
-In Supabase Dashboard → **Authentication** → **Policies**, make sure RLS is enabled for all tables:
-
-```sql
--- Example: Only authenticated users can read their own profile
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own profile" ON profiles
-  FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile" ON profiles
-  FOR UPDATE USING (auth.uid() = id);
-```
+### Row Level Security (RLS)
+RLS is enabled on every exposed application table. Do not recreate broad policies such as `USING (true)` for write operations. Authorization is derived from `public.profiles.role`; patients can read their own records, doctors can manage only their linked queues and patients, and admins can manage hospital data.
 
 ### Required Database Migrations
 Apply the SQL files in `supabase/migrations/` before production testing:
 - `20260912045000_create_profile_signup_trigger.sql` keeps `public.profiles` synced with new Supabase Auth users.
 - `20260912045500_add_symptom_assessment_rls_policies.sql` adds patient-owned RLS policies for symptom assessment rows.
+- `20260912094432_production_rls_lockdown.sql` replaces permissive policies and grants with role/ownership policies.
+- `20260912095913_enable_queue_realtime.sql` publishes `queues`, `tokens`, and `notifications` to Realtime.
+- `20260912100343_harden_doctor_creation.sql` adds the server-only doctor creation transaction.
+- `20260912101053_add_atomic_queue_booking.sql` adds concurrency-safe appointment and token booking.
+- `20260912101511_add_ai_rate_limiting.sql` adds the distributed AI request limiter.
+- `20260912102002_add_safe_doctor_display_names.sql` exposes synchronized doctor names without exposing patient profiles.
+- `20260912103852_encapsulate_atomic_booking.sql` keeps the privileged booking core outside the exposed API schema.
+- `20260912104036_add_foreign_key_indexes.sql` adds indexes used by RLS ownership checks and relational joins.
 
 ### Enable Realtime for Tables
 In Supabase Dashboard → **Database** → **Replication**:
-- Enable Realtime for: `tokens`, `queues` tables
+- Realtime is enabled by migration for: `tokens`, `queues`, and `notifications`
 
 ### Set Auth Redirect URLs
 In Supabase Dashboard → **Authentication** → **URL Configuration**:
@@ -327,26 +334,7 @@ Keep both the production wildcard and exact reset route in the allow list. The a
 After changing these values, request a new recovery email. Supabase recovery links are single-use and an opened or expired link cannot be tested again.
 
 ### Demo Data
-The current Supabase project has a development/demo dataset for Bikaner:
-- 11 active hospitals
-- 66 departments/sections
-- 11 demo doctors
-- 66 doctor schedules
-- 6 demo patients
-- 6 sample appointments
-
-Demo patient login:
-```
-Email:    patient.rohit.soni@smartqueue.demo
-Password: Patient@123
-```
-
-Demo doctor password:
-```
-Doctor@123
-```
-
-These records are synthetic and should be replaced or reviewed before a real production launch.
+The current Supabase project contains a synthetic Bikaner dataset. Review or replace all demo doctors, patients, appointments, and queues before handling real hospital data. Do not store demo or production passwords in this repository.
 
 ---
 
@@ -404,7 +392,7 @@ jobs:
 
 **Add Secrets to GitHub:**
 1. Go to GitHub repo → **Settings** → **Secrets and variables** → **Actions**
-2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `GEMINI_API_KEY`
+2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `GEMINI_API_KEY`. Runtime deployments must also have `SUPABASE_SECRET_KEY` and `AI_RATE_LIMIT_SALT`.
 
 ---
 
@@ -468,12 +456,15 @@ Before going live, verify:
 
 - [ ] `.env.local` values are correct and set in hosting platform
 - [ ] `GEMINI_API_KEY` is set server-side only; no `NEXT_PUBLIC_GEMINI_API_KEY`
+- [ ] `SUPABASE_SECRET_KEY` and `AI_RATE_LIMIT_SALT` are set server-side only
 - [ ] `npm run build` passes with **0 errors**
 - [ ] `npx tsc --noEmit` passes with **0 TypeScript errors**
-- [ ] Supabase Realtime enabled for `tokens` and `queues` tables
+- [x] Supabase Realtime enabled for `tokens`, `queues`, and `notifications` tables
 - [ ] Supabase Auth Redirect URL updated to production domain
 - [ ] Fresh password-reset email opens `/reset-password` and the new password can log in
-- [ ] Row Level Security (RLS) policies enabled on all tables
+- [x] Row Level Security policies and table grants locked down on all exposed tables
+- [ ] Admin can invite a doctor and the invite opens `/reset-password`
+- [ ] Two simultaneous bookings produce unique sequential token numbers
 - [ ] Demo Bikaner data reviewed/replaced before real hospital launch
 - [ ] Custom domain DNS configured and HTTPS certificate active
 - [ ] Test login, token booking, doctor cabin, and TV display on live URL

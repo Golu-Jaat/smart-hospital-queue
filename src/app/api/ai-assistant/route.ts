@@ -1,4 +1,6 @@
+import { createHmac } from "node:crypto";
 import { supabase } from "@/lib/supabase";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { assessSymptoms } from "@/lib/ai";
 
 export const runtime = "nodejs";
@@ -31,8 +33,83 @@ const defaultDepartments =
 const defaultGeminiModel = "gemini-3.6-flash";
 const departmentCacheTtlMs = 5 * 60 * 1000;
 const aiTimeoutMs = 2500;
+const rateLimitWindowMs = 60 * 1000;
+const maxRequestsPerWindow = 12;
+const maxMessageLength = 2000;
+
+type RateLimitEntry = { count: number; resetAt: number };
+type RateLimitResult = { allowed: boolean; retryAfterSeconds: number };
+
+const localRateLimits = new Map<string, RateLimitEntry>();
 
 let cachedDepartments: { value: string; expiresAt: number } | null = null;
+
+function getClientAddress(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  return forwardedFor?.split(",")[0]?.trim() || "unknown";
+}
+
+function getRateLimitKey(request: Request) {
+  const salt =
+    process.env.AI_RATE_LIMIT_SALT ||
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.GEMINI_API_KEY ||
+    "smartqueue-local-rate-limit";
+
+  return createHmac("sha256", salt)
+    .update(getClientAddress(request))
+    .digest("hex");
+}
+
+function checkLocalRateLimit(key: string): RateLimitResult {
+  const now = Date.now();
+  const existing = localRateLimits.get(key);
+
+  if (!existing || existing.resetAt <= now) {
+    localRateLimits.set(key, {
+      count: 1,
+      resetAt: now + rateLimitWindowMs,
+    });
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
+  existing.count += 1;
+  return {
+    allowed: existing.count <= maxRequestsPerWindow,
+    retryAfterSeconds: Math.max(
+      Math.ceil((existing.resetAt - now) / 1000),
+      1,
+    ),
+  };
+}
+
+async function checkRateLimit(request: Request): Promise<RateLimitResult> {
+  const key = getRateLimitKey(request);
+
+  if (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const adminClient = createAdminSupabaseClient();
+      const { data, error } = await adminClient.rpc("consume_ai_rate_limit", {
+        rate_limit_key: key,
+      });
+      const result = (
+        data as Array<{ allowed: boolean; retry_after_seconds: number }> | null
+      )?.[0];
+
+      if (!error && result) {
+        return {
+          allowed: result.allowed,
+          retryAfterSeconds: result.retry_after_seconds,
+        };
+      }
+    } catch (error) {
+      console.error("Distributed AI rate limit unavailable", error);
+    }
+  }
+
+  return checkLocalRateLimit(key);
+}
 
 function buildLocalResponse(patientMessage: string) {
   const result = assessSymptoms(patientMessage);
@@ -111,18 +188,18 @@ async function getDepartmentList() {
     return cachedDepartments.value;
   }
 
-  const timeout = new Promise<null>((resolve) =>
-    setTimeout(() => resolve(null), 800),
-  );
-
-  const departmentsRequest = supabase
-    .from("departments")
-    .select("name")
-    .eq("is_active", true)
-    .returns<DepartmentRow[]>()
-    .then(({ data }) => data);
-
-  const departments = await Promise.race([departmentsRequest, timeout]);
+  let departments: DepartmentRow[] | null = null;
+  try {
+    const { data } = await supabase
+      .from("departments")
+      .select("name")
+      .eq("is_active", true)
+      .abortSignal(AbortSignal.timeout(800))
+      .returns<DepartmentRow[]>();
+    departments = data;
+  } catch {
+    departments = null;
+  }
   const value =
     departments
       ?.map((department) => department.name)
@@ -138,6 +215,25 @@ async function getDepartmentList() {
 }
 
 export async function POST(request: Request) {
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > 16_000) {
+    return Response.json({ error: "Request body is too large." }, { status: 413 });
+  }
+
+  const rateLimit = await checkRateLimit(request);
+  if (!rateLimit.allowed) {
+    return Response.json(
+      { error: "Too many requests. Please wait a moment and try again." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
+
   const apiKey = process.env.GEMINI_API_KEY || "";
   const model = process.env.GEMINI_MODEL || defaultGeminiModel;
 
@@ -152,6 +248,13 @@ export async function POST(request: Request) {
 
   if (!patientMessage) {
     return Response.json({ error: "Message is required." }, { status: 400 });
+  }
+
+  if (patientMessage.length > maxMessageLength) {
+    return Response.json(
+      { error: `Message must be ${maxMessageLength} characters or fewer.` },
+      { status: 413 },
+    );
   }
 
   if (!apiKey) {
@@ -181,50 +284,44 @@ Safety rules:
 
 Patient says: ${patientMessage}`;
 
-  let response: Response | null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), aiTimeoutMs);
+  let response: Response;
+  let data: GeminiResponse;
   try {
-    response = await Promise.race([
-      fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: prompt }],
-              },
-            ],
-            generationConfig: { maxOutputTokens: 450 },
-          }),
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-      ),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), aiTimeoutMs)),
-    ]);
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 450 },
+        }),
+        signal: controller.signal,
+      },
+    );
+    data = (await response.json()) as GeminiResponse;
   } catch (error) {
     return aiUnavailableResponse(
       patientMessage,
       model,
-      error instanceof Error ? error.message : error,
+      controller.signal.aborted
+        ? "AI response timeout"
+        : error instanceof Error
+          ? error.message
+          : error,
     );
+  } finally {
+    clearTimeout(timeout);
   }
-
-  if (!response) {
-    return aiUnavailableResponse(patientMessage, model, "AI response timeout");
-  }
-
-  const data = (await Promise.race([
-    response.json(),
-    new Promise<GeminiResponse>((resolve) =>
-      setTimeout(
-        () => resolve({ error: { message: "AI response timeout" } }),
-        aiTimeoutMs,
-      ),
-    ),
-  ])) as GeminiResponse;
   const assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!response.ok || data.error || !assistantMessage || assistantMessage.length < 80) {

@@ -22,8 +22,8 @@ export function isValidAppointmentRequest(request: AppointmentRequest) {
 
 export function getAppointmentStatusLabel(status: AppointmentStatus) {
   const labels: Record<AppointmentStatus, string> = {
-    booked: "Booked",
-    checked_in: "Checked in",
+    pending: "Pending",
+    confirmed: "Confirmed",
     completed: "Completed",
     cancelled: "Cancelled",
   };
