@@ -6,6 +6,30 @@ import { supabase } from "@/lib/supabase";
 
 const RECOVERY_INTENT_KEY = "smartqueue-password-recovery";
 
+function getStoredRecoveryIntent() {
+  try {
+    return sessionStorage.getItem(RECOVERY_INTENT_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function storeRecoveryIntent() {
+  try {
+    sessionStorage.setItem(RECOVERY_INTENT_KEY, "true");
+  } catch {
+    // Auth events still provide the primary recovery signal.
+  }
+}
+
+function clearRecoveryIntent() {
+  try {
+    sessionStorage.removeItem(RECOVERY_INTENT_KEY);
+  } catch {
+    // Storage can be unavailable in privacy-restricted browser contexts.
+  }
+}
+
 function hasRecoveryIntentInUrl() {
   const queryParams = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(
@@ -26,7 +50,7 @@ export function AuthRecoveryRedirect() {
 
   useEffect(() => {
     if (window.location.pathname === "/reset-password") {
-      sessionStorage.removeItem(RECOVERY_INTENT_KEY);
+      clearRecoveryIntent();
       return;
     }
 
@@ -34,13 +58,14 @@ export function AuthRecoveryRedirect() {
     const recoveryIntent = hasRecoveryIntentInUrl();
 
     if (recoveryIntent) {
-      sessionStorage.setItem(RECOVERY_INTENT_KEY, "true");
+      storeRecoveryIntent();
     }
 
     const redirectToReset = () => {
       if (!active) return;
-      sessionStorage.removeItem(RECOVERY_INTENT_KEY);
-      router.replace("/reset-password");
+      const callbackParameters = `${window.location.search}${window.location.hash}`;
+      clearRecoveryIntent();
+      router.replace(`/reset-password${callbackParameters}`);
     };
 
     const {
@@ -53,11 +78,8 @@ export function AuthRecoveryRedirect() {
 
     void supabase.auth
       .getSession()
-      .then(({ data: { session } }) => {
-        const storedIntent =
-          sessionStorage.getItem(RECOVERY_INTENT_KEY) === "true";
-
-        if (session && (recoveryIntent || storedIntent)) {
+      .then(() => {
+        if (recoveryIntent || getStoredRecoveryIntent()) {
           redirectToReset();
         }
       })

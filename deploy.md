@@ -322,7 +322,7 @@ Redirect URLs:       https://smart-hospital-queue-mu.vercel.app/**
 Reset redirect:      https://smart-hospital-queue-mu.vercel.app/reset-password
 ```
 
-Keep both the production wildcard and exact reset route in the allow list. The app also catches a valid `PASSWORD_RECOVERY` callback that lands on the Site URL and forwards it to `/reset-password`.
+Keep both the production wildcard and exact reset route in the allow list. The app captures recovery intent before hydration and also catches a valid `PASSWORD_RECOVERY` callback that lands on the Site URL, then forwards it to `/reset-password`.
 
 After changing these values, request a new recovery email. Supabase recovery links are single-use and an opened or expired link cannot be tested again.
 
