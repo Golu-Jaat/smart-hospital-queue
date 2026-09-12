@@ -256,7 +256,7 @@ export default function AdminDashboardPage() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-2xl">{card.icon}</span>
-                      <span className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">
+                      <span className="rounded-full bg-white/20 px-2 py-1 text-xs">
                         {card.change}
                       </span>
                     </div>

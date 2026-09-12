@@ -128,7 +128,7 @@ export function Navbar() {
         </Link>
 
         {/* Dynamic Role-Based Nav Links */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden lg:flex items-center gap-1">
           {getFilteredNavItems().map((item) => (
             <Link
               key={item.href}
@@ -199,7 +199,7 @@ export function Navbar() {
                   </div>
 
                   {/* Mobile Role Navigation */}
-                  <div className="space-y-1 text-xs font-semibold md:hidden">
+                  <div className="space-y-1 text-xs font-semibold lg:hidden">
                     {getFilteredNavItems().map((item) => (
                       <Link
                         key={item.href}

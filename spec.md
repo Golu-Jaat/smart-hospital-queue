@@ -1,6 +1,6 @@
 # 📋 SmartQueue — Technical Specification Document
 
-**Version:** 1.1
+**Version:** 1.2
 **Author:** Golu Jaat  
 **Project:** Smart Hospital OPD Queue Management System  
 **Last Updated:** September 12, 2026
@@ -12,7 +12,7 @@
 
 Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips and manual calling with a **fully automated, real-time cloud-synchronized queue system** that:
 
-- Reduces average patient wait time by **40%+**
+- Makes queue position and expected waiting progress visible to patients
 - Removes manual token distribution entirely
 - Broadcasts live patient turns on waiting room TV screens
 - Routes patients intelligently using **AI symptom analysis**
@@ -283,7 +283,7 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 
 | Layer | Technology |
 | :--- | :--- |
-| **Framework** | Next.js 16.3.1 (App Router, Turbopack) |
+| **Framework** | Next.js 16.3.4 (App Router, Turbopack) |
 | **Language** | TypeScript 5 (Strict Mode) |
 | **Styling** | Tailwind CSS 4 (Dark Mode, 3D Glassmorphism) |
 | **Database** | Supabase (PostgreSQL 15 + Realtime WebSockets) |
@@ -304,6 +304,15 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 - **Department cache:** AI route caches the active department list for five minutes
 - **Next.js Static Generation:** 21/22 routes are statically pre-rendered at build time
 - **`devIndicators: false`** in `next.config.js` — no dev watermarks in production
+
+### Responsive UI Requirements
+
+- Core routes must remain usable without horizontal page overflow at 320px, 390px, 768px, and 1440px viewport widths.
+- The primary navbar uses its compact menu below the `lg` breakpoint so tablet navigation does not become crowded.
+- Booking, tracking, authentication, and AI composer controls stack on narrow screens and retain full-width tap targets.
+- Dense admin tables may scroll inside their own containers; they must not expand the document width.
+- Fixed-format queue, token, and public-display elements use stable responsive dimensions so dynamic data does not shift or overlap nearby UI.
+- Light and dark themes must render with readable contrast at every supported viewport.
 
 ---
 

@@ -107,7 +107,7 @@ export default function PatientDashboardPage() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <section className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -195,22 +195,22 @@ export default function PatientDashboardPage() {
                   </p>
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                  <div className="rounded-xl bg-white/20 p-3 text-center">
                     <p className="text-xs text-blue-200">Serving</p>
                     <p className="font-bold text-lg">
                       #{activeToken.queues?.current_token_number}
                     </p>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                  <div className="rounded-xl bg-white/20 p-3 text-center">
                     <p className="text-xs text-blue-200">Ahead</p>
                     <p className="font-bold text-lg">{peopleAhead}</p>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                  <div className="rounded-xl bg-white/20 p-3 text-center">
                     <p className="text-xs text-blue-200">Wait</p>
                     <p className="font-bold text-lg">{estimatedWait}m</p>
                   </div>
                 </div>
-                <div className="mt-4 bg-white bg-opacity-10 rounded-xl p-3">
+                <div className="mt-4 rounded-xl bg-white/10 p-3">
                   <p className="text-xs text-blue-200">Doctor</p>
                   <p className="font-semibold">
                     {activeToken.queues?.doctors?.display_name || "Doctor"}

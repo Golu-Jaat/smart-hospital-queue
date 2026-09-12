@@ -1,6 +1,6 @@
 # 🚀 SmartQueue — Deployment Guide
 
-**Version:** 1.1
+**Version:** 1.2
 **Author:** Golu Jaat  
 **Last Updated:** September 12, 2026
 
@@ -471,6 +471,10 @@ Before going live, verify:
 - [ ] Demo Bikaner data reviewed/replaced before real hospital launch
 - [ ] Custom domain DNS configured and HTTPS certificate active
 - [ ] Test login, token booking, doctor cabin, and TV display on live URL
+- [ ] Check core pages at 320px and 390px mobile widths with no clipped controls or page-level horizontal scrolling
+- [ ] Check tablet navigation and dashboards at 768px width
+- [ ] Check laptop/desktop layouts at 1024px and 1440px widths
+- [ ] Verify light and dark themes do not flash, overlap, or lose text contrast after refresh
 
 ---
 

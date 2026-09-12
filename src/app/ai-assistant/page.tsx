@@ -190,17 +190,17 @@ export default function AIAssistantPage() {
       {/* Ambient background light */}
       <div className="absolute top-20 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -z-10 animate-float-3d" />
 
-      <section className="mx-auto max-w-3xl px-4 py-8">
+      <section className="mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             {/* 3D Floating AI Core Orb */}
             <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-500/30 transform transition-transform ${
               isListening ? "scale-110 animate-pulse-ring" : "animate-float-3d"
             }`}>
               🤖
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white flex items-center gap-2">
+            <div className="min-w-0">
+              <h1 className="flex flex-wrap items-center gap-2 text-xl font-black text-slate-950 dark:text-white sm:text-3xl">
                 AI Symptom Assistant
                 <span className="text-xs font-mono font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full">v2.0</span>
               </h1>
@@ -235,14 +235,14 @@ export default function AIAssistantPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
-          <div className="h-96 overflow-y-auto p-6 space-y-4">
+          <div className="h-[clamp(18rem,50dvh,24rem)] space-y-4 overflow-y-auto p-4 sm:p-6">
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${
+                  className={`max-w-[92%] break-words rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] sm:max-w-xs lg:max-w-md ${
                     m.role === "user"
                       ? "bg-blue-600 text-white"
                       : "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600"
@@ -272,7 +272,7 @@ export default function AIAssistantPage() {
             </div>
           )}
 
-          <div className="border-t border-slate-200 dark:border-slate-700 p-4 flex items-center gap-2">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 border-t border-slate-200 p-3 dark:border-slate-700 sm:flex sm:p-4">
             {/* Mic Button */}
             <button
               onClick={startVoiceInput}
@@ -297,12 +297,12 @@ export default function AIAssistantPage() {
                   ? "अपने लक्षण लिखें या 🎙️ माइक दबाकर बोलें..."
                   : "Type symptoms or press 🎙️ mic to speak..."
               }
-              className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-slate-700 dark:text-white"
+              className="min-w-0 w-full flex-1 rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white sm:px-4"
             />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
-              className="rounded-xl bg-blue-600 px-5 py-2.5 text-white text-sm font-semibold hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 shadow-sm transition"
+              className="col-span-2 w-full rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 sm:col-auto sm:w-auto"
             >
               Send
             </button>

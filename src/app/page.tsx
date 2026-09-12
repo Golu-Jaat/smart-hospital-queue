@@ -77,14 +77,14 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors overflow-hidden relative selection:bg-blue-500 selection:text-white">
+    <main className="relative min-h-screen overflow-x-clip bg-slate-50 selection:bg-blue-500 selection:text-white dark:bg-slate-950 transition-colors">
       <Navbar />
 
       {/* Ambient 3D Mesh Lighting Glows */}
       <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-blue-500/15 dark:bg-blue-600/12 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-3d" />
       <div className="absolute top-72 right-10 w-[450px] h-[450px] bg-purple-500/15 dark:bg-indigo-600/12 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-3d" style={{ animationDelay: "3s" }} />
 
-      <section className="mx-auto max-w-7xl px-4 pt-12 pb-20 lg:py-20 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      <section className="mx-auto grid max-w-7xl items-center gap-10 px-3 pb-16 pt-8 sm:px-4 sm:pb-20 sm:pt-12 lg:grid-cols-12 lg:gap-8 lg:py-20">
         {/* Left Column: Ultra-Professional Interactive Hero */}
         <div className="lg:col-span-7 space-y-6">
           
@@ -98,14 +98,14 @@ export default function HomePage() {
                   setIsDeleting(false);
                   setDisplayText("");
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-300 ${
+                className={`flex max-w-full shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-300 ${
                   activeTab === idx
                     ? "bg-blue-600 text-white shadow-md shadow-blue-500/30 scale-105"
                     : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500"
                 }`}
               >
                 <span>{pill.icon}</span>
-                <span>{pill.label}</span>
+                <span className="whitespace-nowrap">{pill.label}</span>
               </button>
             ))}
           </div>
@@ -117,11 +117,11 @@ export default function HomePage() {
               <span>Cloud Real-Time Synchronization Active</span>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.12]">
+            <h1 className="text-3xl font-black leading-[1.12] text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
               Smart Hospital AI Queue for{" "}
-              <span className="block mt-2 font-mono text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400 min-h-[56px] sm:min-h-[64px]">
+              <span className="mt-2 block min-h-20 break-words bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 bg-clip-text font-mono text-2xl font-black leading-tight text-transparent [overflow-wrap:anywhere] dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400 sm:min-h-24 sm:text-4xl lg:text-5xl">
                 {displayText}
-                <span className="inline-block w-1 h-8 sm:h-12 ml-1 bg-blue-600 dark:bg-blue-400 animate-pulse align-middle" />
+                <span className="ml-1 inline-block h-7 w-1 animate-pulse bg-blue-600 align-middle dark:bg-blue-400 sm:h-10" />
               </span>
             </h1>
           </div>
@@ -144,19 +144,19 @@ export default function HomePage() {
           </p>
 
           {/* Quick Token Live Search / Jump Bar */}
-          <div className="p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl max-w-lg">
-            <form onSubmit={handleQuickTrack} className="flex items-center gap-2">
-              <span className="text-lg pl-2">🔍</span>
+          <div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 sm:p-2.5">
+            <form onSubmit={handleQuickTrack} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="hidden pl-2 text-lg sm:inline">🔍</span>
               <input
                 type="text"
                 value={quickTokenId}
                 onChange={(e) => setQuickTokenId(e.target.value)}
                 placeholder="Enter Token ID to Track Live (e.g. 14)..."
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none px-2"
+                className="min-w-0 w-full flex-1 bg-transparent px-3 py-2 text-sm text-slate-900 outline-none placeholder-slate-400 dark:text-white sm:px-2 sm:py-0"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+                className="w-full flex-shrink-0 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95 sm:w-auto sm:hover:scale-105"
               >
                 Track Live →
               </button>
@@ -167,19 +167,19 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link
               href="/patient/dashboard"
-              className="px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+              className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-95 sm:w-auto sm:hover:scale-105"
             >
               Get OPD Token →
             </Link>
             <Link
               href="/display"
-              className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white hover:border-blue-500 rounded-2xl font-bold text-sm shadow-sm transition-all hover:scale-105 flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-800 shadow-sm transition-all hover:border-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white sm:w-auto sm:hover:scale-105"
             >
               <span>📺 TV Waiting Hall Display</span>
             </Link>
             <Link
               href="/ai-assistant"
-              className="px-4 py-3.5 bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white rounded-2xl font-semibold text-xs transition"
+              className="w-full rounded-2xl bg-slate-100 px-4 py-3.5 text-center text-xs font-semibold text-slate-700 transition hover:text-blue-600 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:text-white sm:w-auto"
             >
               🎙️ Voice AI
             </Link>
@@ -217,7 +217,7 @@ export default function HomePage() {
             className="preserve-3d cursor-pointer"
           >
             {/* Hologram 3D Pass */}
-            <div className="hologram-card rounded-3xl p-6 sm:p-8 border border-white/60 dark:border-slate-700/80 bg-gradient-to-br from-white via-slate-50/95 to-blue-50/60 dark:from-slate-850 dark:via-slate-800 dark:to-slate-900 shadow-2xl backdrop-blur-xl">
+            <div className="hologram-card rounded-3xl border border-white/60 bg-gradient-to-br from-white via-slate-50/95 to-blue-50/60 p-4 shadow-2xl backdrop-blur-xl dark:border-slate-700/80 dark:from-slate-850 dark:via-slate-800 dark:to-slate-900 sm:p-8">
               <div className="flex flex-col gap-3 border-b border-dashed border-slate-200 pb-5 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xl shadow-lg shadow-blue-500/30">
@@ -242,7 +242,7 @@ export default function HomePage() {
                     #14
                   </span>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-xs text-amber-400 font-medium">
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-amber-400">
                   <span>🔔 Proceed to <strong>Room 102</strong></span>
                   <span>•</span>
                   <span>Dr. Sharma (Cardiology)</span>
