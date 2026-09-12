@@ -80,7 +80,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Accepts symptom description in **Hindi or English**
 - Gemini AI runs through a server-side API route (`/api/ai-assistant`) so the API key is never exposed in the browser
 - Fast local medical rule fallback returns safe department triage if Gemini is slow, unavailable, or incomplete
-- Gemini calls are aborted after 2.5 seconds; the local evaluator responds when the upstream call times out
+- Gemini defaults to the low-latency `gemini-3.1-flash-lite` model with minimal thinking; calls are aborted after 5 seconds and the local evaluator responds when the upstream call times out
 - AI requests are limited to 12 requests per minute per hashed client address, with a local server fallback if the distributed limiter is temporarily unavailable
 - Gemini AI analyzes symptoms → recommends appropriate medical department
   - e.g. chest pain → Cardiology; joint pain → Orthopedics; child fever → Pediatrics

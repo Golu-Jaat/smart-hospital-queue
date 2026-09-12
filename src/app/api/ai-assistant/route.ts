@@ -30,9 +30,9 @@ type DepartmentRow = {
 
 const defaultDepartments =
   "General Medicine, Cardiology, Orthopedics, Pediatrics, Dermatology";
-const defaultGeminiModel = "gemini-3.6-flash";
+const defaultGeminiModel = "gemini-3.1-flash-lite";
 const departmentCacheTtlMs = 5 * 60 * 1000;
-const aiTimeoutMs = 2500;
+const aiTimeoutMs = 5000;
 const rateLimitWindowMs = 60 * 1000;
 const maxRequestsPerWindow = 12;
 const maxMessageLength = 2000;
@@ -303,7 +303,10 @@ Patient says: ${patientMessage}`;
               parts: [{ text: prompt }],
             },
           ],
-          generationConfig: { maxOutputTokens: 450 },
+          generationConfig: {
+            maxOutputTokens: 450,
+            thinkingConfig: { thinkingLevel: "minimal" },
+          },
         }),
         signal: controller.signal,
       },

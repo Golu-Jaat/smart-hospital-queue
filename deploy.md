@@ -62,6 +62,7 @@ SUPABASE_SECRET_KEY=your-supabase-secret-key
 
 # ─── AI Assistant ──────────────────────────────────────────
 GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3.1-flash-lite
 AI_RATE_LIMIT_SALT=replace-with-a-long-random-secret
 ```
 
@@ -145,6 +146,7 @@ In the Vercel project setup screen:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `your-publishable-key` |
 | `SUPABASE_SECRET_KEY` | `your-server-only-supabase-secret` |
 | `GEMINI_API_KEY` | `your-gemini-api-key` |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` |
 | `AI_RATE_LIMIT_SALT` | `a-long-random-server-secret` |
 
 Keep `GEMINI_API_KEY`, `SUPABASE_SECRET_KEY`, and `AI_RATE_LIMIT_SALT` server-only. Never add `NEXT_PUBLIC_` to these variables.
@@ -178,6 +180,7 @@ NEXT_PUBLIC_SUPABASE_URL = https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = your-publishable-key
 SUPABASE_SECRET_KEY = your-server-only-supabase-secret
 GEMINI_API_KEY = your-gemini-api-key
+GEMINI_MODEL = gemini-3.1-flash-lite
 AI_RATE_LIMIT_SALT = your-long-random-secret
 ```
 
