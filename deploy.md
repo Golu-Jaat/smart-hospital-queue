@@ -377,7 +377,7 @@ Monitor `GET https://your-app-url.vercel.app/api/health` from an uptime service.
 
 ## 9. CI/CD with GitHub Actions
 
-The complete workflow template is committed as `ci.example.yml`. Copy it to `.github/workflows/ci.yml` using GitHub credentials that have workflow-write permission. It then runs for pushes to `main` and pull requests:
+The active workflow is committed as `.github/workflows/ci.yml`. It runs for pushes to `main` and pull requests:
 
 ```bash
 npm ci
@@ -389,7 +389,7 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-CI uses non-secret placeholder public Supabase values because its browser suite verifies public rendering and the safe degraded health response. Real Supabase, Gemini, `SUPABASE_SECRET_KEY`, and `AI_RATE_LIMIT_SALT` values belong only in the deployment environment. Configure GitHub branch protection or Vercel deployment checks if production deploys must wait for CI. A classic Personal Access Token needs the `workflow` scope to add or update `.github/workflows/*`.
+CI uses non-secret placeholder public Supabase values because its browser suite verifies public rendering and the safe degraded health response. Real Supabase, Gemini, `SUPABASE_SECRET_KEY`, and `AI_RATE_LIMIT_SALT` values belong only in the deployment environment. Configure GitHub branch protection or Vercel deployment checks if production deploys must wait for CI.
 
 ---
 
