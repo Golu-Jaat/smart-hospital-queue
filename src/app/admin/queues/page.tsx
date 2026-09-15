@@ -4,8 +4,13 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { AccessGuard } from "@/components/AccessGuard";
+import { getIndiaDate } from "@/lib/scheduling";
 
-type Doctor = { id: string; specialization: string; profiles: any };
+type Doctor = {
+  id: string;
+  specialization: string;
+  profiles: { full_name?: string } | { full_name?: string }[] | null;
+};
 type Queue = {
   id: string;
   queue_date: string;
@@ -33,6 +38,7 @@ export default function AdminQueuesPage() {
   const [showForm, setShowForm] = useState(false);
   const [doctorId, setDoctorId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     fetchAll();
@@ -71,21 +77,17 @@ export default function AdminQueuesPage() {
 
   const createQueue = async () => {
     setSaving(true);
-    const doc = doctors.find((d) => d.id === doctorId);
-    const { data: docData } = await supabase
-      .from("doctors")
-      .select("hospital_id, department_id")
-      .eq("id", doctorId)
-      .single();
-
-    await supabase.from("queues").insert({
-      doctor_id: doctorId,
-      hospital_id: docData?.hospital_id,
-      department_id: docData?.department_id,
-      queue_date: new Date().toISOString().split("T")[0],
-      current_token_number: 0,
-      status: "active",
+    setActionError("");
+    const { error } = await supabase.rpc("ensure_doctor_queue", {
+      target_doctor_id: doctorId,
+      requested_date: getIndiaDate(),
     });
+
+    if (error) {
+      setActionError(error.message);
+      setSaving(false);
+      return;
+    }
 
     setShowForm(false);
     setDoctorId("");
@@ -103,21 +105,14 @@ export default function AdminQueuesPage() {
     status: string,
     queueId: string,
   ) => {
-    const updates: Record<string, string> = { status };
-    if (status === "called") updates.called_at = new Date().toISOString();
-    if (status === "completed") updates.completed_at = new Date().toISOString();
-    if (status === "skipped") updates.skipped_at = new Date().toISOString();
-
-    await supabase.from("tokens").update(updates).eq("id", id);
-
-    if (status === "called") {
-      const token = tokens.find((t) => t.id === id);
-      if (token) {
-        await supabase
-          .from("queues")
-          .update({ current_token_number: token.token_number })
-          .eq("id", queueId);
-      }
+    setActionError("");
+    const { error } = await supabase.rpc("transition_token_status", {
+      target_token_id: id,
+      requested_status: status,
+    });
+    if (error) {
+      setActionError(error.message);
+      return;
     }
     fetchTokens(queueId);
     fetchAll();
@@ -153,6 +148,12 @@ export default function AdminQueuesPage() {
             {showForm ? "Cancel" : "+ Create Queue"}
           </button>
         </div>
+
+        {actionError && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {actionError}
+          </div>
+        )}
 
         {showForm && (
           <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">

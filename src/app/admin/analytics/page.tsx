@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { AccessGuard } from "@/components/AccessGuard";
+import {
+  type AdminAnalytics,
+  emptyAdminAnalytics,
+  getDateDaysAgo,
+} from "@/lib/admin-analytics";
+import { getIndiaDate } from "@/lib/scheduling";
 
 type Stats = {
   totalPatients: number;
@@ -16,6 +22,8 @@ type Stats = {
   totalHospitals: number;
   totalDoctors: number;
   totalDepartments: number;
+  avgWaitMinutes: number;
+  clearanceRate: number;
 };
 
 export default function AdminAnalyticsPage() {
@@ -30,78 +38,48 @@ export default function AdminAnalyticsPage() {
     totalHospitals: 0,
     totalDoctors: 0,
     totalDepartments: 0,
+    avgWaitMinutes: 0,
+    clearanceRate: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
+    const { data, error } = await supabase.rpc("get_admin_analytics", {
+      requested_start: getDateDaysAgo(29),
+      requested_end: getIndiaDate(),
+    });
 
-    const [
-      { count: totalPatients },
-      { count: totalTokens },
-      { count: waiting },
-      { count: completed },
-      { count: skipped },
-      { count: cancelled },
-      { count: totalAppointments },
-      { count: totalHospitals },
-      { count: totalDoctors },
-      { count: totalDepartments },
-    ] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "patient"),
-      supabase.from("tokens").select("*", { count: "exact", head: true }),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "waiting"),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "completed"),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "skipped"),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "cancelled"),
-      supabase.from("appointments").select("*", { count: "exact", head: true }),
-      supabase
-        .from("hospitals")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-      supabase
-        .from("doctors")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-      supabase
-        .from("departments")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-    ]);
+    if (error) {
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    const analytics = (data || emptyAdminAnalytics) as AdminAnalytics;
 
     setStats({
-      totalPatients: totalPatients || 0,
-      totalTokens: totalTokens || 0,
-      waiting: waiting || 0,
-      completed: completed || 0,
-      skipped: skipped || 0,
-      cancelled: cancelled || 0,
-      totalAppointments: totalAppointments || 0,
-      totalHospitals: totalHospitals || 0,
-      totalDoctors: totalDoctors || 0,
-      totalDepartments: totalDepartments || 0,
+      totalPatients: analytics.totalPatients,
+      totalTokens: analytics.totalTokens,
+      waiting: analytics.waiting,
+      completed: analytics.completed,
+      skipped: analytics.skipped,
+      cancelled: analytics.cancelled,
+      totalAppointments: analytics.totalAppointments,
+      totalHospitals: analytics.totalHospitals,
+      totalDoctors: analytics.totalDoctors,
+      totalDepartments: analytics.totalDepartments,
+      avgWaitMinutes: analytics.avgWaitMinutes,
+      clearanceRate: analytics.clearanceRate,
     });
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchStats();
+  }, [fetchStats]);
 
   const cards = [
     {
@@ -166,8 +144,7 @@ export default function AdminAnalyticsPage() {
     },
   ];
 
-  const clearanceRate = stats.totalTokens > 0 ? Math.round((stats.completed / stats.totalTokens) * 100) : 0;
-  const timeSavedHours = Math.round((stats.completed * 20) / 60);
+  const clearanceRate = stats.clearanceRate;
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
@@ -178,7 +155,7 @@ export default function AdminAnalyticsPage() {
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-slate-950 dark:text-white sm:text-3xl">Hospital Analytics</h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                OPD throughput, token efficiency and system performance metrics
+                Verified OPD metrics for the last 30 days
               </p>
             </div>
             <button
@@ -197,9 +174,9 @@ export default function AdminAnalyticsPage() {
               <p className="text-xs text-blue-100 mt-1">{stats.completed} of {stats.totalTokens} tokens served</p>
             </div>
             <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-md">
-              <p className="text-xs uppercase tracking-wider text-emerald-200 font-semibold">Patient Wait Time Saved</p>
-              <p className="mt-2 font-mono text-3xl font-black sm:text-4xl">~{timeSavedHours} hrs</p>
-              <p className="text-xs text-emerald-100 mt-1">Via automated queue scheduling</p>
+              <p className="text-xs uppercase tracking-wider text-emerald-200 font-semibold">Average Waiting Time</p>
+              <p className="mt-2 font-mono text-3xl font-black sm:text-4xl">{stats.avgWaitMinutes} min</p>
+              <p className="text-xs text-emerald-100 mt-1">Measured booking-to-call average</p>
             </div>
             <div className="bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl p-5 text-white shadow-md">
               <p className="text-xs uppercase tracking-wider text-purple-200 font-semibold">Active Doctor Capacity</p>
@@ -207,6 +184,12 @@ export default function AdminAnalyticsPage() {
               <p className="text-xs text-purple-100 mt-1">Across {stats.totalDepartments} hospital departments</p>
             </div>
           </div>
+
+          {loadError && (
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+              {loadError}
+            </div>
+          )}
 
           {loading ? (
             <p className="mt-6 text-slate-500 dark:text-slate-400">Loading metrics...</p>

@@ -20,6 +20,20 @@ export type Profile = {
   created_at: string;
 };
 
+export type PatientHealthProfile = {
+  patient_id: string;
+  avatar_path: string | null;
+  avatar_emoji: string | null;
+  blood_group: string | null;
+  age: number | null;
+  gender: string | null;
+  allergies: string | null;
+  emergency_name: string | null;
+  emergency_phone: string | null;
+  address: string | null;
+  updated_at: string;
+};
+
 export type Hospital = {
   id: string;
   name: string;

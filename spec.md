@@ -105,6 +105,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - **1-Click Queue Initialization:** Creates today's active queue in Supabase with one click
 - **Priority Triage System:** `normal`, `urgent`, and `emergency`
 - **Patient Call Actions:** Call → Complete (with prescription notes) / Skip
+- Queue creation and token transitions run through authorization-checked PostgreSQL transactions
 - **OPD Delay Broadcast:** +15m / +30m / +45m / +60m delay announcement to all patients
 - **Consultation Notes:** Attach medical advice to completed token record
 - **Real-time token sync:** Supabase subscription updates without page refresh
@@ -117,11 +118,12 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 #### Dashboard (`/admin/dashboard`)
 - Live KPI cards: Total Tokens Today, Completed, Avg Wait Time, Queue Clearance Rate %
 - Recent activity feed
+- All values come from the admin-only `get_admin_analytics` database RPC
 
 #### Analytics (`/admin/analytics`)
 - Queue Clearance Rate trend chart (Recharts line graph)
 - Token status distribution (pie chart: waiting / called / completed / skipped)
-- Wait time saved per day (bar chart)
+- Measured booking-to-call average wait time; stale waits over 24 hours are excluded
 - Department-wise patient load comparison
 
 #### Hospital Management (`/admin/hospitals`)
@@ -149,20 +151,23 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 ---
 
 ### 4.7 👤 Patient Profile & Digital Health ID (`/patient/profile`)
-- **Profile Photo Upload:** Client-side auto-compression to base64
+- **Profile Photo Upload:** Client-side compression followed by upload to private Supabase Storage
 - **8 Preset Medical Avatars:** Emoji-based quick selection
 - **Personal Info:** Full Name, Phone, Age, Gender, City
 - **Medical Health Card:** Blood Group, Known Allergies, Emergency Contact Name + Phone
 - **3D Interactive Digital Health ID Card** (holographic shimmer effect)
-- Synced to Supabase `profiles` table + `localStorage` for fast load
-- Profile photo syncs to Navbar avatar in real-time via `profileUpdated` event
+- Identity fields are stored in `profiles`; medical fields are stored in patient-owned `patient_health_profiles` rows
+- Photos are loaded with short-lived signed URLs; sensitive medical data is removed from legacy Auth metadata and browser storage after save
+- Profile photo syncs to Navbar avatar via the `profileUpdated` event
 
 ---
 
 ### 4.8 📅 Patient Appointments (`/patient/appointments`)
 - List of all patient's booked OPD tokens with status
 - Filter by: All / Waiting / Completed / Skipped
+- Appointment time is selected from active doctor schedules, using the doctor's consultation duration
 - Appointment, queue, token number, and notification are created in one atomic PostgreSQL function
+- PostgreSQL validates future dates, schedule hours, exact slot alignment, and summed daily capacity
 - Unique doctor/date/slot and queue/token constraints prevent double booking and duplicate token numbers under concurrency
 
 ---
@@ -189,7 +194,7 @@ The Supabase project currently includes a Bikaner demo dataset for development a
 - **12 active demo doctors** linked to hospital + department + room number
 - **67 active doctor schedules**
 - **9 patient profiles**
-- **14 sample appointments**
+- **15 sample appointments**
 
 > Demo doctors and patients are synthetic records for testing. Production credentials are not documented or shared in the repository.
 
@@ -204,10 +209,26 @@ The Supabase project currently includes a Bikaner demo dataset for development a
 | `full_name` | `text` | Display name |
 | `phone` | `text` | Contact number |
 | `role` | `text` | `admin` / `doctor` / `patient` |
-| `avatar_url` | `text` | Base64 image or emoji avatar |
 | `created_at` | `timestamptz` | Registration timestamp |
 
 New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()`. The trigger copies `full_name`, `email`, and `phone` from Supabase Auth metadata and defaults `role` to `patient`.
+
+### `patient_health_profiles`
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `patient_id` | `uuid` (PK, FK → profiles) | Owning patient |
+| `avatar_path` | `text` | Private Storage object path |
+| `avatar_emoji` | `text` | Optional preset avatar |
+| `blood_group` | `text` | Blood group |
+| `age` | `int` | Validated age, 0-130 |
+| `gender` | `text` | Patient-entered gender |
+| `allergies` | `text` | Known allergies |
+| `emergency_name` | `text` | Emergency contact name |
+| `emergency_phone` | `text` | Emergency contact phone |
+| `address` | `text` | Patient address |
+| `updated_at` | `timestamptz` | Last update time |
+
+Patients can select, insert, and update only their own row through RLS. Avatar objects are private and restricted to a folder named with the authenticated user's ID.
 
 ### `hospitals`
 | Column | Type | Description |
@@ -242,7 +263,7 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 | `average_consultation_minutes` | `int` | Avg time per patient |
 | `is_active` | `boolean` | Active/inactive toggle |
 
-### `schedules`
+### `doctor_schedules`
 | Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` (PK) | Schedule ID |
@@ -286,12 +307,13 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 | **Framework** | Next.js 16.3.4 (App Router, Turbopack) |
 | **Language** | TypeScript 5 (Strict Mode) |
 | **Styling** | Tailwind CSS 4 (Dark Mode, 3D Glassmorphism) |
-| **Database** | Supabase (PostgreSQL 15 + Realtime WebSockets) |
+| **Database** | Supabase (PostgreSQL 17 + Realtime WebSockets) |
 | **Auth** | Supabase Auth + `@supabase/ssr` cookie sessions |
 | **Audio** | Web Audio API (Oscillator chime synthesis) |
 | **Voice** | Web Speech API (SpeechRecognition + SpeechSynthesis) |
 | **Charts** | Recharts |
 | **AI** | Gemini via server-only `GEMINI_API_KEY` with local triage fallback |
+| **Testing** | Vitest unit tests + Playwright responsive smoke tests |
 | **Deployment** | Vercel / Railway |
 
 ---
@@ -302,8 +324,15 @@ New Auth users are mirrored into `profiles` by `public.handle_new_user_profile()
 - **RLS helper indexes:** Doctor ownership, queue ownership, and patient lookups use indexed foreign keys
 - **Realtime publication:** Limited to `queues`, `tokens`, and `notifications`
 - **Department cache:** AI route caches the active department list for five minutes
-- **Next.js Static Generation:** 21/22 routes are statically pre-rendered at build time
+- **Next.js Static Generation:** Public and dashboard pages are pre-rendered where possible; API and token-detail routes remain dynamic
 - **`devIndicators: false`** in `next.config.js` — no dev watermarks in production
+
+### Automated Quality and Monitoring
+
+- Vitest covers schedule slot generation, India date handling, emergency triage routing, and baseline schema/RLS presence.
+- Playwright opens public workflows in mobile, tablet, and desktop Chromium viewports and rejects page-level horizontal overflow.
+- GitHub Actions runs lint, TypeScript, unit tests, production build, and Playwright on pushes to `main` and pull requests.
+- `GET /api/health` reports app/database health with `200` or a safe degraded `503` response and `Cache-Control: no-store`.
 
 ### Responsive UI Requirements
 

@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { AccessGuard } from "@/components/AccessGuard";
 import { playChime } from "@/lib/sound";
+import { getIndiaDate } from "@/lib/scheduling";
 
 type Token = {
   id: string;
@@ -45,6 +46,7 @@ export default function DoctorDashboardPage() {
   const [startingQueue, setStartingQueue] = useState(false);
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   // Modals & Broadcast
   const [delayMinutes, setDelayMinutes] = useState<number>(0);
@@ -170,64 +172,39 @@ export default function DoctorDashboardPage() {
   const handleStartTodayQueue = async () => {
     if (!selectedDoctor) return;
     setStartingQueue(true);
+    setActionError("");
     try {
-      const today = new Date().toISOString().split("T")[0];
-
-      // Fetch doctor details to get hospital_id and department_id
-      const { data: docRow } = await supabase
-        .from("doctors")
-        .select("hospital_id, department_id")
-        .eq("id", selectedDoctor.id)
-        .single();
-
-      const { data: newQueue, error } = await supabase
-        .from("queues")
-        .insert({
-          doctor_id: selectedDoctor.id,
-          hospital_id: docRow?.hospital_id,
-          department_id: docRow?.department_id,
-          queue_date: today,
-          status: "active",
-          current_token_number: 0,
-        })
-        .select()
-        .single();
+      const { error } = await supabase.rpc("ensure_doctor_queue", {
+        target_doctor_id: selectedDoctor.id,
+        requested_date: getIndiaDate(),
+      });
 
       if (error) throw error;
 
-      setQueue(newQueue);
       await loadDoctorQueue(selectedDoctor.id);
-    } catch (err: any) {
-      alert("Error starting queue: " + err.message);
+    } catch (err: unknown) {
+      setActionError(
+        err instanceof Error ? err.message : "Unable to start the doctor queue.",
+      );
     } finally {
       setStartingQueue(false);
     }
   };
 
   const updateToken = async (id: string, status: string) => {
-    const updates: Record<string, any> = { status };
-    if (status === "called") {
-      updates.called_at = new Date().toISOString();
-      playChime();
-    }
-    if (status === "completed") updates.completed_at = new Date().toISOString();
-    if (status === "skipped") updates.skipped_at = new Date().toISOString();
+    setActionError("");
+    const { error } = await supabase.rpc("transition_token_status", {
+      target_token_id: id,
+      requested_status: status,
+    });
 
-    await supabase.from("tokens").update(updates).eq("id", id);
-
-    if (status === "called" && queue) {
-      const token = tokens.find((t) => t.id === id);
-      if (token) {
-        await supabase
-          .from("queues")
-          .update({ current_token_number: token.token_number })
-          .eq("id", queue.id);
-      }
+    if (error) {
+      setActionError(error.message);
+      return;
     }
 
-    if (selectedDoctorId) {
-      await loadDoctorQueue(selectedDoctorId);
-    }
+    if (status === "called") playChime();
+    if (selectedDoctorId) await loadDoctorQueue(selectedDoctorId);
   };
 
   const setDoctorDelay = (mins: number, reason: string) => {
@@ -294,6 +271,12 @@ export default function DoctorDashboardPage() {
               </div>
             )}
           </div>
+
+          {actionError && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+              {actionError}
+            </div>
+          )}
 
           {/* Delay Broadcast Controls */}
           {queue && (

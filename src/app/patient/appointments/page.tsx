@@ -4,6 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams, useRouter } from "next/navigation";
+import {
+  formatSlot,
+  getAvailableSlots,
+  getIndiaDate,
+  type DoctorSchedule,
+} from "@/lib/scheduling";
 
 type Doctor = {
   id: string;
@@ -15,6 +21,7 @@ type Doctor = {
   display_name: string;
   departments: { name: string };
   hospitals: { name: string };
+  doctor_schedules: DoctorSchedule[];
 };
 
 type Appointment = {
@@ -60,7 +67,9 @@ function AppointmentsContent() {
     if (doctorId) {
       const { data: doc } = await supabase
         .from("doctors")
-        .select("*, departments(name), hospitals(name)")
+        .select(
+          "*, departments(name), hospitals(name), doctor_schedules(day_of_week, start_time, end_time, max_patients, is_active)",
+        )
         .eq("id", doctorId)
         .single();
       setDoctor(doc);
@@ -101,10 +110,15 @@ function AppointmentsContent() {
     );
 
     if (bookError) {
+      const message = bookError.message;
       setError(
-        /already has an appointment/i.test(bookError.message)
+        /already has an appointment/i.test(message)
           ? "That time slot was just booked. Please choose another time."
-          : bookError.message,
+          : /reached capacity/i.test(message)
+            ? "This doctor is fully booked for the selected date."
+            : /outside the doctor schedule|valid appointment slot/i.test(message)
+              ? "Please select one of the available OPD time slots."
+              : message,
       );
       setBooking(false);
       return;
@@ -127,6 +141,13 @@ function AppointmentsContent() {
   };
 
   const docFullName = doctor?.display_name || doctor?.specialization || "Doctor";
+  const availableSlots = doctor
+    ? getAvailableSlots(
+        doctor.doctor_schedules || [],
+        date,
+        doctor.average_consultation_minutes,
+      )
+    : [];
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
@@ -151,21 +172,43 @@ function AppointmentsContent() {
               <input
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setTime("");
+                }}
+                min={getIndiaDate()}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2"
               />
             </div>
             <div>
               <label className="text-sm text-slate-600 dark:text-slate-300 mb-1 block">Time</label>
-              <input
-                type="time"
+              <select
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2"
-              />
+                disabled={!date || availableSlots.length === 0}
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:disabled:bg-slate-800"
+              >
+                <option value="">
+                  {!date
+                    ? "Select a date first"
+                    : availableSlots.length === 0
+                      ? "No OPD slots available"
+                      : "Select an available slot"}
+                </option>
+                {availableSlots.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {formatSlot(slot)}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
+
+          {date && availableSlots.length === 0 && (
+            <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">
+              The doctor has no active OPD schedule for this date.
+            </p>
+          )}
 
           <button
             onClick={handleBook}

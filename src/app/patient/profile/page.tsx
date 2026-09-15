@@ -27,12 +27,37 @@ type ProfileData = {
   address?: string;
 };
 
+type HealthProfileRow = {
+  avatar_path: string | null;
+  avatar_emoji: string | null;
+  blood_group: string | null;
+  age: number | null;
+  gender: string | null;
+  allergies: string | null;
+  emergency_name: string | null;
+  emergency_phone: string | null;
+  address: string | null;
+};
+
+function isImageAvatar(value?: string) {
+  return Boolean(
+    value && (value.startsWith("data:") || value.startsWith("http")),
+  );
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Failed to update profile";
+}
+
 export default function PatientProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [pendingAvatar, setPendingAvatar] = useState<Blob | null>(null);
+  const [storedAvatarPath, setStoredAvatarPath] = useState<string | null>(null);
+  const [avatarEmoji, setAvatarEmoji] = useState<string | null>(null);
 
   const [profile, setProfile] = useState<ProfileData>({
     id: "",
@@ -66,37 +91,72 @@ export default function PatientProfilePage() {
         return;
       }
 
-      // Check local storage for extended profile data
+      // Read legacy browser data once so existing users can migrate it to Supabase.
       const savedLocal = localStorage.getItem(`user_profile_${user.id}`);
-      let localData: any = {};
+      let localData: Partial<ProfileData> = {};
       if (savedLocal) {
         try {
-          localData = JSON.parse(savedLocal);
-        } catch (e) {}
+          localData = JSON.parse(savedLocal) as Partial<ProfileData>;
+        } catch {}
       }
 
-      const { data: dbProfile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+      const [profileResult, healthResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, phone, role")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("patient_health_profiles")
+          .select(
+            "avatar_path, avatar_emoji, blood_group, age, gender, allergies, emergency_name, emergency_phone, address",
+          )
+          .eq("patient_id", user.id)
+          .maybeSingle<HealthProfileRow>(),
+      ]);
+
+      if (profileResult.error) throw profileResult.error;
+      if (healthResult.error) throw healthResult.error;
+
+      const dbProfile = profileResult.data;
+      const healthProfile = healthResult.data;
 
       const meta = user.user_metadata || {};
 
+      let avatarUrl = healthProfile?.avatar_emoji || "";
+      if (healthProfile?.avatar_path) {
+        const { data: signedAvatar, error: avatarError } = await supabase.storage
+          .from("profile-avatars")
+          .createSignedUrl(healthProfile.avatar_path, 3600);
+        if (!avatarError) avatarUrl = signedAvatar.signedUrl;
+      }
+
+      setStoredAvatarPath(healthProfile?.avatar_path || null);
+      setAvatarEmoji(healthProfile?.avatar_emoji || null);
       setProfile({
         id: user.id,
         full_name: dbProfile?.full_name || meta.full_name || localData.full_name || "",
         email: user.email || "",
         phone: dbProfile?.phone || meta.phone || localData.phone || "",
         role: dbProfile?.role || "patient",
-        avatar_url: localData.avatar_url || meta.avatar_url || "",
-        blood_group: localData.blood_group || meta.blood_group || "O+",
-        age: localData.age || meta.age || "",
-        gender: localData.gender || meta.gender || "Male",
-        allergies: localData.allergies || meta.allergies || "",
-        emergency_name: localData.emergency_name || meta.emergency_name || "",
-        emergency_phone: localData.emergency_phone || meta.emergency_phone || "",
-        address: localData.address || meta.address || "",
+        avatar_url: avatarUrl || localData.avatar_url || meta.avatar_url || "",
+        blood_group:
+          healthProfile?.blood_group || localData.blood_group || meta.blood_group || "O+",
+        age: String(healthProfile?.age ?? localData.age ?? meta.age ?? ""),
+        gender: healthProfile?.gender || localData.gender || meta.gender || "Male",
+        allergies:
+          healthProfile?.allergies || localData.allergies || meta.allergies || "",
+        emergency_name:
+          healthProfile?.emergency_name ||
+          localData.emergency_name ||
+          meta.emergency_name ||
+          "",
+        emergency_phone:
+          healthProfile?.emergency_phone ||
+          localData.emergency_phone ||
+          meta.emergency_phone ||
+          "",
+        address: healthProfile?.address || localData.address || meta.address || "",
       });
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -105,7 +165,7 @@ export default function PatientProfilePage() {
     }
   };
 
-  // Handle Photo File Upload with client compression to base64
+  // Compress the preview before uploading it to the private avatar bucket.
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -121,15 +181,23 @@ export default function PatientProfilePage() {
       img.onload = () => {
         const canvas = document.createElement("canvas");
         const MAX_WIDTH = 250;
-        const scale = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scale;
+        const scale = Math.min(MAX_WIDTH / img.width, 1);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
 
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
         const compressedBase64 = canvas.toDataURL("image/jpeg", 0.85);
 
         setProfile((prev) => ({ ...prev, avatar_url: compressedBase64 }));
+        setAvatarEmoji(null);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) setPendingAvatar(blob);
+          },
+          "image/jpeg",
+          0.85,
+        );
       };
       img.src = event.target?.result as string;
     };
@@ -138,10 +206,14 @@ export default function PatientProfilePage() {
 
   const handleSelectPresetAvatar = (avatar: string) => {
     setProfile((prev) => ({ ...prev, avatar_url: avatar }));
+    setAvatarEmoji(avatar);
+    setPendingAvatar(null);
   };
 
   const handleRemovePhoto = () => {
     setProfile((prev) => ({ ...prev, avatar_url: "" }));
+    setAvatarEmoji(null);
+    setPendingAvatar(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -152,37 +224,103 @@ export default function PatientProfilePage() {
     setSuccessMsg("");
 
     try {
-      // 1. Save to Supabase profiles table
-      await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: profile.full_name,
           phone: profile.phone,
         })
         .eq("id", profile.id);
+      if (profileError) throw profileError;
 
-      // 2. Save metadata to Supabase Auth
-      await supabase.auth.updateUser({
+      let avatarPath = storedAvatarPath;
+      let savedAvatarEmoji = avatarEmoji;
+
+      if (pendingAvatar) {
+        avatarPath = `${profile.id}/avatar.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("profile-avatars")
+          .upload(avatarPath, pendingAvatar, {
+            upsert: true,
+            contentType: "image/jpeg",
+            cacheControl: "3600",
+          });
+        if (uploadError) throw uploadError;
+        savedAvatarEmoji = null;
+      } else if (avatarEmoji || !profile.avatar_url) {
+        if (storedAvatarPath) {
+          const { error: removeError } = await supabase.storage
+            .from("profile-avatars")
+            .remove([storedAvatarPath]);
+          if (removeError) throw removeError;
+        }
+        avatarPath = null;
+      }
+
+      const parsedAge = profile.age ? Number(profile.age) : null;
+      if (
+        parsedAge !== null &&
+        (!Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 130)
+      ) {
+        throw new Error("Age must be a whole number between 0 and 130.");
+      }
+
+      const { error: healthError } = await supabase
+        .from("patient_health_profiles")
+        .upsert({
+          patient_id: profile.id,
+          avatar_path: avatarPath,
+          avatar_emoji: savedAvatarEmoji,
+          blood_group: profile.blood_group || null,
+          age: parsedAge,
+          gender: profile.gender || null,
+          allergies: profile.allergies?.trim() || null,
+          emergency_name: profile.emergency_name?.trim() || null,
+          emergency_phone: profile.emergency_phone?.trim() || null,
+          address: profile.address?.trim() || null,
+          updated_at: new Date().toISOString(),
+        });
+      if (healthError) throw healthError;
+
+      const { error: metadataError } = await supabase.auth.updateUser({
         data: {
           full_name: profile.full_name,
           phone: profile.phone,
-          avatar_url: profile.avatar_url,
-          blood_group: profile.blood_group,
-          age: profile.age,
-          gender: profile.gender,
+          avatar_url: null,
+          blood_group: null,
+          age: null,
+          gender: null,
+          allergies: null,
+          emergency_name: null,
+          emergency_phone: null,
+          address: null,
         },
       });
+      if (metadataError) throw metadataError;
 
-      // 3. Save full extended profile data to localStorage
-      localStorage.setItem(`user_profile_${profile.id}`, JSON.stringify(profile));
+      localStorage.removeItem(`user_profile_${profile.id}`);
+      setStoredAvatarPath(avatarPath);
+      setAvatarEmoji(savedAvatarEmoji);
+      setPendingAvatar(null);
 
-      // 4. Notify other components (Navbar, etc.) to update avatar immediately
+      if (avatarPath) {
+        const { data: signedAvatar } = await supabase.storage
+          .from("profile-avatars")
+          .createSignedUrl(avatarPath, 3600);
+        if (signedAvatar) {
+          setProfile((current) => ({
+            ...current,
+            avatar_url: signedAvatar.signedUrl,
+          }));
+        }
+      }
+
       window.dispatchEvent(new Event("profileUpdated"));
 
       setSuccessMsg("✅ Profile and Health Card updated successfully!");
       setTimeout(() => setSuccessMsg(""), 4000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to update profile");
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -230,7 +368,7 @@ export default function PatientProfilePage() {
 
                 <div className="relative inline-block mx-auto mb-4">
                   <div className="w-28 h-28 rounded-full border-4 border-blue-500/30 overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-4xl shadow-xl">
-                    {profile.avatar_url && profile.avatar_url.startsWith("data:") ? (
+                    {isImageAvatar(profile.avatar_url) ? (
                       <img
                         src={profile.avatar_url}
                         alt="Avatar"
@@ -312,7 +450,7 @@ export default function PatientProfilePage() {
 
                 <div className="my-4 flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-xl font-bold flex-shrink-0">
-                    {profile.avatar_url && profile.avatar_url.startsWith("data:") ? (
+                    {isImageAvatar(profile.avatar_url) ? (
                       <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : profile.avatar_url ? (
                       <span>{profile.avatar_url}</span>

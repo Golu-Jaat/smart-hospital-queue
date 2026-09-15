@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { AccessGuard } from "@/components/AccessGuard";
@@ -17,9 +17,13 @@ import {
   Pie,
   Cell,
   Legend,
-  BarChart,
-  Bar,
 } from "recharts";
+import {
+  type AdminAnalytics,
+  type AnalyticsRecentToken,
+  emptyAdminAnalytics,
+} from "@/lib/admin-analytics";
+import { getIndiaDate } from "@/lib/scheduling";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -40,99 +44,51 @@ export default function AdminDashboardPage() {
   const [tokenTrend, setTokenTrend] = useState<
     { time: string; tokens: number; completed: number }[]
   >([]);
-  const [recentTokens, setRecentTokens] = useState<any[]>([]);
+  const [recentTokens, setRecentTokens] = useState<AnalyticsRecentToken[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  useEffect(() => {
-    fetchDashboardData();
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    const today = getIndiaDate();
+    const { data, error } = await supabase.rpc("get_admin_analytics", {
+      requested_start: today,
+      requested_end: today,
+    });
+
+    if (error) {
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    const analytics = (data || emptyAdminAnalytics) as AdminAnalytics;
+    setStats({
+      totalTokens: analytics.totalTokens,
+      completed: analytics.completed,
+      waiting: analytics.waiting,
+      skipped: analytics.skipped,
+      totalDoctors: analytics.totalDoctors,
+      totalPatients: analytics.totalPatients,
+      totalAppointments: analytics.totalAppointments,
+      avgWaitTime: analytics.avgWaitMinutes,
+    });
+    setDepartmentData(analytics.byDepartment);
+    setTokenTrend(
+      analytics.byHour.map((point) => ({
+        time: point.time || "",
+        tokens: point.tokens,
+        completed: point.completed,
+      })),
+    );
+    setRecentTokens(analytics.recentTokens);
+    setLoading(false);
   }, []);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-
-    const [
-      { count: totalTokens },
-      { count: completed },
-      { count: waiting },
-      { count: skipped },
-      { count: totalDoctors },
-      { count: totalPatients },
-      { count: totalAppointments },
-    ] = await Promise.all([
-      supabase.from("tokens").select("*", { count: "exact", head: true }),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "completed"),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "waiting"),
-      supabase
-        .from("tokens")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "skipped"),
-      supabase
-        .from("doctors")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true),
-      supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "patient"),
-      supabase.from("appointments").select("*", { count: "exact", head: true }),
-    ]);
-
-    setStats({
-      totalTokens: totalTokens || 0,
-      completed: completed || 0,
-      waiting: waiting || 0,
-      skipped: skipped || 0,
-      totalDoctors: totalDoctors || 0,
-      totalPatients: totalPatients || 0,
-      totalAppointments: totalAppointments || 0,
-      avgWaitTime: 10,
-    });
-
-    // Department data
-    const { data: depts } = await supabase
-      .from("departments")
-      .select("name, tokens(count)");
-
-    const { data: deptTokens } = await supabase
-      .from("tokens")
-      .select("queue_id, queues(department_id, departments(name))")
-      .limit(100);
-
-    const deptMap: Record<string, number> = {};
-    deptTokens?.forEach((t: any) => {
-      const name = t.queues?.departments?.name || "Unknown";
-      deptMap[name] = (deptMap[name] || 0) + 1;
-    });
-    setDepartmentData(
-      Object.entries(deptMap).map(([name, value]) => ({ name, value })),
-    );
-
-    // Token trend (mock hourly data)
-    const trend = Array.from({ length: 8 }, (_, i) => ({
-      time: `${8 + i}:00`,
-      tokens: Math.floor(Math.random() * 50) + 10,
-      completed: Math.floor(Math.random() * 40) + 5,
-    }));
-    setTokenTrend(trend);
-
-    // Recent tokens
-    const { data: recent } = await supabase
-      .from("tokens")
-      .select(
-        "id, token_number, status, profiles(full_name), queues(doctors(specialization))",
-      )
-      .order("joined_at", { ascending: false })
-      .limit(5);
-    setRecentTokens(recent || []);
-
-    setLoading(false);
-  };
+  useEffect(() => {
+    void fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const statCards = [
     {
@@ -140,35 +96,35 @@ export default function AdminDashboardPage() {
       value: stats.totalTokens,
       icon: "🎫",
       color: "bg-blue-500",
-      change: "+12.5%",
+      change: "Today",
     },
     {
       label: "Served Tokens",
       value: stats.completed,
       icon: "✅",
       color: "bg-green-500",
-      change: "+10.3%",
+      change: "Actual",
     },
     {
       label: "Avg Waiting Time",
       value: `${stats.avgWaitTime} mins`,
       icon: "⏱️",
       color: "bg-orange-500",
-      change: "-5.6%",
+      change: "Actual",
     },
     {
       label: "Active Doctors",
       value: stats.totalDoctors,
       icon: "👨‍⚕️",
       color: "bg-purple-500",
-      change: "+0%",
+      change: "Active",
     },
     {
       label: "Total Patients",
       value: stats.totalPatients,
       icon: "🚶",
       color: "bg-cyan-500",
-      change: "+8.7%",
+      change: "All time",
     },
   ];
 
@@ -237,11 +193,23 @@ export default function AdminDashboardPage() {
                   year: "numeric",
                 })}
               </span>
-              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
-                All Systems Operational
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  loadError
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                }`}
+              >
+                {loadError ? "Analytics unavailable" : "Live data connected"}
               </span>
             </div>
           </div>
+
+          {loadError && (
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+              {loadError}
+            </div>
+          )}
 
           {loading ? (
             <p className="text-slate-500">Loading dashboard...</p>
@@ -415,18 +383,10 @@ export default function AdminDashboardPage() {
                                 </span>
                               </td>
                               <td className="py-3 text-sm text-slate-700 dark:text-slate-200">
-                                {Array.isArray(t.profiles)
-                                  ? t.profiles[0]?.full_name
-                                  : t.profiles?.full_name || "Patient"}
+                                {t.patient_name || "Patient"}
                               </td>
                               <td className="py-3 text-sm text-slate-500 dark:text-slate-400">
-                                {Array.isArray(t.queues)
-                                  ? (Array.isArray(t.queues[0]?.doctors)
-                                      ? t.queues[0]?.doctors[0]?.specialization
-                                      : t.queues[0]?.doctors?.specialization)
-                                  : (Array.isArray(t.queues?.doctors)
-                                      ? t.queues?.doctors[0]?.specialization
-                                      : t.queues?.doctors?.specialization) || "General"}
+                                {t.department_name || t.specialization || "General"}
                               </td>
                               <td className="py-3">
                                 <span
@@ -498,12 +458,24 @@ export default function AdminDashboardPage() {
                     ))}
                   </div>
 
-                  <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                    <p className="text-green-700 text-xs font-semibold">
+                  <div
+                    className={`mt-4 rounded-lg p-3 ${
+                      loadError ? "bg-red-50" : "bg-green-50"
+                    }`}
+                  >
+                    <p
+                      className={`text-xs font-semibold ${
+                        loadError ? "text-red-700" : "text-green-700"
+                      }`}
+                    >
                       System Status
                     </p>
-                    <p className="text-green-600 text-sm font-bold">
-                      All Systems Operational ✅
+                    <p
+                      className={`text-sm font-bold ${
+                        loadError ? "text-red-600" : "text-green-600"
+                      }`}
+                    >
+                      {loadError ? "Database check failed" : "Operational"}
                     </p>
                   </div>
                 </div>

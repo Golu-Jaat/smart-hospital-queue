@@ -26,7 +26,7 @@
 Make sure these are installed on your system:
 
 ```bash
-# Check Node.js version (must be 18.18+ or 20+)
+# Check Node.js version (Node.js 22 recommended)
 node --version
 
 # Check npm version
@@ -104,7 +104,10 @@ Open **http://localhost:3000** in your browser.
 npm run dev
 
 # Check TypeScript errors
-npx tsc --noEmit
+npm run typecheck
+
+# Run unit tests
+npm test
 
 # Build production bundle (test before deploy)
 npm run build
@@ -114,6 +117,9 @@ npm start
 
 # Lint code
 npm run lint
+
+# Run responsive browser and monitoring checks after npm run build
+npm run test:e2e
 ```
 
 ---
@@ -298,7 +304,9 @@ pm2 restart smartqueue
 RLS is enabled on every exposed application table. Do not recreate broad policies such as `USING (true)` for write operations. Authorization is derived from `public.profiles.role`; patients can read their own records, doctors can manage only their linked queues and patients, and admins can manage hospital data.
 
 ### Required Database Migrations
-Apply the SQL files in `supabase/migrations/` before production testing:
+For a new Supabase project, run `supabase/baseline.sql` once to create the base tables and enable RLS. Then apply the SQL files in `supabase/migrations/` in filename order. For the current production project, apply only migrations not already listed in Supabase migration history.
+
+The production migration chain includes:
 - `20260912045000_create_profile_signup_trigger.sql` keeps `public.profiles` synced with new Supabase Auth users.
 - `20260912045500_add_symptom_assessment_rls_policies.sql` adds patient-owned RLS policies for symptom assessment rows.
 - `20260912094432_production_rls_lockdown.sql` replaces permissive policies and grants with role/ownership policies.
@@ -309,6 +317,12 @@ Apply the SQL files in `supabase/migrations/` before production testing:
 - `20260912102002_add_safe_doctor_display_names.sql` exposes synchronized doctor names without exposing patient profiles.
 - `20260912103852_encapsulate_atomic_booking.sql` keeps the privileged booking core outside the exposed API schema.
 - `20260912104036_add_foreign_key_indexes.sql` adds indexes used by RLS ownership checks and relational joins.
+- `20260914103635_add_patient_health_profiles.sql` adds patient-owned medical profiles and the private `profile-avatars` bucket.
+- `20260914103648_enforce_schedule_capacity.sql` validates OPD dates, exact slots, schedules, and daily capacity inside atomic booking.
+- `20260914103702_add_atomic_queue_actions.sql` adds authorized queue initialization and token status transition RPCs.
+- `20260914103716_add_admin_analytics.sql` adds bounded, admin-only operational analytics computed in PostgreSQL.
+- `20260914105926_refine_analytics_wait_time.sql` excludes invalid waits over 24 hours from the average.
+- `20260914114954_remove_legacy_rls_policies.sql` removes superseded permissive policies and explicitly denies client access to private AI rate-limit rows.
 
 ### Enable Realtime for Tables
 In Supabase Dashboard → **Database** → **Replication**:
@@ -339,6 +353,10 @@ After changing these values, request a new recovery email. Supabase recovery lin
 ### Demo Data
 The current Supabase project contains a synthetic Bikaner dataset. Review or replace all demo doctors, patients, appointments, and queues before handling real hospital data. Do not store demo or production passwords in this repository.
 
+### Health Monitoring
+
+Monitor `GET https://your-app-url.vercel.app/api/health` from an uptime service. A healthy app returns HTTP `200` with `status: "ok"`; missing configuration or an unreachable database returns HTTP `503` with `status: "degraded"`. The endpoint is uncached and does not expose keys or raw database errors.
+
 ---
 
 ## 8. Custom Domain Setup
@@ -357,45 +375,21 @@ The current Supabase project contains a synthetic Bikaner dataset. Review or rep
 
 ---
 
-## 9. CI/CD with GitHub Actions (Auto Deploy)
+## 9. CI/CD with GitHub Actions
 
-Create `.github/workflows/deploy.yml` in your project:
+The repository includes `.github/workflows/ci.yml`. It runs for pushes to `main` and pull requests:
 
-```yaml
-name: Deploy to Vercel
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Build
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npx playwright install --with-deps chromium
+npm run test:e2e
 ```
 
-**Add Secrets to GitHub:**
-1. Go to GitHub repo → **Settings** → **Secrets and variables** → **Actions**
-2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `GEMINI_API_KEY`. Runtime deployments must also have `SUPABASE_SECRET_KEY` and `AI_RATE_LIMIT_SALT`.
+CI uses non-secret placeholder public Supabase values because its browser suite verifies public rendering and the safe degraded health response. Real Supabase, Gemini, `SUPABASE_SECRET_KEY`, and `AI_RATE_LIMIT_SALT` values belong only in the deployment environment. Configure GitHub branch protection or Vercel deployment checks if production deploys must wait for CI.
 
 ---
 
@@ -407,7 +401,7 @@ jobs:
 npm run build
 
 # Check TypeScript errors
-npx tsc --noEmit
+npm run typecheck
 
 # Check for missing env variables
 echo $NEXT_PUBLIC_SUPABASE_URL
@@ -461,13 +455,18 @@ Before going live, verify:
 - [ ] `GEMINI_API_KEY` is set server-side only; no `NEXT_PUBLIC_GEMINI_API_KEY`
 - [ ] `SUPABASE_SECRET_KEY` and `AI_RATE_LIMIT_SALT` are set server-side only
 - [ ] `npm run build` passes with **0 errors**
-- [ ] `npx tsc --noEmit` passes with **0 TypeScript errors**
+- [ ] `npm run typecheck` passes with **0 TypeScript errors**
+- [ ] `npm test` passes all unit/schema checks
+- [ ] `npm run test:e2e` passes after the production build
+- [ ] `/api/health` returns `200` against the production database
 - [x] Supabase Realtime enabled for `tokens`, `queues`, and `notifications` tables
 - [ ] Supabase Auth Redirect URL updated to production domain
 - [ ] Fresh password-reset email opens `/reset-password` and the new password can log in
 - [x] Row Level Security policies and table grants locked down on all exposed tables
 - [ ] Admin can invite a doctor and the invite opens `/reset-password`
 - [ ] Two simultaneous bookings produce unique sequential token numbers
+- [ ] Booking outside the doctor schedule or above capacity is rejected
+- [ ] Doctor/admin token actions update token, queue, appointment, and notification atomically
 - [ ] Demo Bikaner data reviewed/replaced before real hospital launch
 - [ ] Custom domain DNS configured and HTTPS certificate active
 - [ ] Test login, token booking, doctor cabin, and TV display on live URL

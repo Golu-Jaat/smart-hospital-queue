@@ -38,20 +38,21 @@ export function Navbar() {
       setIsLoggedIn(true);
       setUserEmail(user.email || "");
 
-      // Check localStorage for quick avatar cache
-      const localProfile = localStorage.getItem(`user_profile_${user.id}`);
-      if (localProfile) {
-        try {
-          const parsed = JSON.parse(localProfile) as { avatar_url?: string };
-          if (parsed.avatar_url) setUserAvatar(parsed.avatar_url);
-        } catch {}
-      }
+      const [profileResult, healthResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("patient_health_profiles")
+          .select("avatar_path, avatar_emoji")
+          .eq("patient_id", user.id)
+          .maybeSingle(),
+      ]);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, role")
-        .eq("id", user.id)
-        .single();
+      const profile = profileResult.data;
+      const healthProfile = healthResult.data;
 
       setUserName(profile?.full_name || user.user_metadata?.full_name || "User");
       setUserRole(
@@ -60,7 +61,16 @@ export function Navbar() {
           : "patient",
       );
 
-      setUserAvatar((current) => current || user.user_metadata?.avatar_url || "");
+      if (healthProfile?.avatar_emoji) {
+        setUserAvatar(healthProfile.avatar_emoji);
+      } else if (healthProfile?.avatar_path) {
+        const { data: signedAvatar } = await supabase.storage
+          .from("profile-avatars")
+          .createSignedUrl(healthProfile.avatar_path, 3600);
+        setUserAvatar(signedAvatar?.signedUrl || "");
+      } else {
+        setUserAvatar(user.user_metadata?.avatar_url || "");
+      }
     } else {
       setIsLoggedIn(false);
     }
@@ -154,7 +164,8 @@ export function Navbar() {
               >
                 {/* Photo / Avatar Circle */}
                 <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                  {userAvatar && userAvatar.startsWith("data:") ? (
+                  {userAvatar &&
+                  (userAvatar.startsWith("data:") || userAvatar.startsWith("http")) ? (
                     <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                   ) : userAvatar ? (
                     <span className="text-sm">{userAvatar}</span>
@@ -175,7 +186,8 @@ export function Navbar() {
                   {/* User Profile Header Card */}
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow">
-                      {userAvatar && userAvatar.startsWith("data:") ? (
+                      {userAvatar &&
+                      (userAvatar.startsWith("data:") || userAvatar.startsWith("http")) ? (
                         <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                       ) : userAvatar ? (
                         <span>{userAvatar}</span>
