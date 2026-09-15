@@ -67,3 +67,14 @@ test("saved dark theme is active by the first frame after refresh", async ({ pag
   expect(darkAtFirstFrame).toBe(true);
   await expect(page.locator("html")).toHaveClass(/dark/);
 });
+
+test("navbar starts in a neutral auth state before client session recovery", async ({ request }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "SSR check only runs once");
+
+  const response = await request.get("/");
+  expect(response.status()).toBeLessThan(500);
+
+  const html = await response.text();
+  expect(html).toContain('data-auth-state="checking"');
+  expect(html).toContain('aria-label="Checking account session"');
+});

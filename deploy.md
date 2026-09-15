@@ -450,6 +450,7 @@ sudo tail -f /var/log/nginx/error.log
 2. Clear any older service-worker/browser cache once after deploying an auth-routing change, then sign in again.
 3. Verify the Supabase URL and publishable key belong to the same project in both browser and Vercel environments.
 4. Portal navigation deliberately disables protected-route prefetching, and login performs a full navigation so the first protected request includes the new session cookies.
+5. During refresh, the navbar intentionally shows a fixed-size neutral account placeholder until the browser session is recovered; it must not briefly render Login or Sign Up for an authenticated user.
 
 ### Dark Mode Flashes After Refresh
 1. Confirm `next-themes` remains installed and the root provider uses `attribute="class"`.

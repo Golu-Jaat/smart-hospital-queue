@@ -44,6 +44,7 @@ SmartQueue is a responsive hospital OPD queue management application for patient
 
 - Protected routes validate Supabase sessions and database-owned roles.
 - Admin, doctor, and patient portal navigation shares one role matrix and avoids caching unauthenticated redirects.
+- Navbar session recovery uses a neutral placeholder and never flashes guest login controls for an existing session.
 - PostgreSQL Row Level Security restricts data by role and ownership.
 - New public signups always receive the `patient` role from a database trigger.
 - Doctor creation uses a server-only Supabase secret and an atomic database function.

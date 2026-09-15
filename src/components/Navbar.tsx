@@ -6,9 +6,10 @@ import { ThemeToggle } from "./ThemeToggle";
 import { SmartQueueLogo } from "./SmartQueueLogo";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@/lib/rbac";
+import type { User } from "@supabase/supabase-js";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
@@ -18,10 +19,12 @@ const navItems = [
   { href: "/ai-assistant", label: "AI Assistant" },
 ];
 
+type AuthStatus = "checking" | "authenticated" | "guest";
+
 export function Navbar() {
   const router = useRouter();
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState<UserRole>("patient");
   const [userAvatar, setUserAvatar] = useState("");
@@ -29,64 +32,95 @@ export function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchUserData = async () => {
+  const seedSessionUser = useCallback((user: User) => {
+    setAuthStatus("authenticated");
+    setUserEmail(user.email || "");
+    setUserName(user.user_metadata?.full_name || "User");
+    setUserAvatar(user.user_metadata?.avatar_url || "");
+  }, []);
+
+  const clearUserData = useCallback(() => {
+    setAuthStatus("guest");
+    setUserName("");
+    setUserRole("patient");
+    setUserAvatar("");
+    setUserEmail("");
+  }, []);
+
+  const fetchUserData = useCallback(async () => {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.user) {
+      clearUserData();
+      return;
+    }
+
+    // Cookie-backed session data is enough for immediate display. The verified
+    // user and database-owned role are still fetched before role links appear.
+    seedSessionUser(session.user);
+
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (user) {
-      setIsLoggedIn(true);
-      setUserEmail(user.email || "");
-
-      const [profileResult, healthResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, role")
-          .eq("id", user.id)
-          .single(),
-        supabase
-          .from("patient_health_profiles")
-          .select("avatar_path, avatar_emoji")
-          .eq("patient_id", user.id)
-          .maybeSingle(),
-      ]);
-
-      const profile = profileResult.data;
-      const healthProfile = healthResult.data;
-
-      setUserName(profile?.full_name || user.user_metadata?.full_name || "User");
-      setUserRole(
-        profile?.role === "admin" || profile?.role === "doctor"
-          ? profile.role
-          : "patient",
-      );
-
-      if (healthProfile?.avatar_emoji) {
-        setUserAvatar(healthProfile.avatar_emoji);
-      } else if (healthProfile?.avatar_path) {
-        const { data: signedAvatar } = await supabase.storage
-          .from("profile-avatars")
-          .createSignedUrl(healthProfile.avatar_path, 3600);
-        setUserAvatar(signedAvatar?.signedUrl || "");
-      } else {
-        setUserAvatar(user.user_metadata?.avatar_url || "");
-      }
-    } else {
-      setIsLoggedIn(false);
+    if (userError || !user) {
+      return;
     }
-  };
+
+    seedSessionUser(user);
+
+    const [profileResult, healthResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("patient_health_profiles")
+        .select("avatar_path, avatar_emoji")
+        .eq("patient_id", user.id)
+        .maybeSingle(),
+    ]);
+
+    const profile = profileResult.data;
+    const healthProfile = healthResult.data;
+
+    setUserName(profile?.full_name || user.user_metadata?.full_name || "User");
+    setUserRole(
+      profile?.role === "admin" || profile?.role === "doctor"
+        ? profile.role
+        : "patient",
+    );
+
+    if (healthProfile?.avatar_emoji) {
+      setUserAvatar(healthProfile.avatar_emoji);
+    } else if (healthProfile?.avatar_path) {
+      const { data: signedAvatar } = await supabase.storage
+        .from("profile-avatars")
+        .createSignedUrl(healthProfile.avatar_path, 3600);
+      setUserAvatar(signedAvatar?.signedUrl || "");
+    } else {
+      setUserAvatar(user.user_metadata?.avatar_url || "");
+    }
+  }, [clearUserData, seedSessionUser]);
+
+  const isLoggedIn = authStatus === "authenticated";
 
   useEffect(() => {
-    fetchUserData();
+    void fetchUserData();
 
     // Listen for profile changes
-    const handleProfileUpdate = () => fetchUserData();
+    const handleProfileUpdate = () => void fetchUserData();
     window.addEventListener("profileUpdated", handleProfileUpdate);
 
     return () => {
       window.removeEventListener("profileUpdated", handleProfileUpdate);
     };
-  }, []);
+  }, [fetchUserData]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -101,7 +135,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     await signOut();
-    setIsLoggedIn(false);
+    clearUserData();
     setDropdownOpen(false);
     router.push("/login");
   };
@@ -152,11 +186,23 @@ export function Navbar() {
         </div>
 
         {/* Right Side */}
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div
+          className="flex shrink-0 items-center gap-1.5 sm:gap-2"
+          data-auth-state={authStatus}
+        >
           <ThemeToggle />
           {isLoggedIn && <NotificationBell />}
 
-          {isLoggedIn ? (
+          {authStatus === "checking" ? (
+            <div
+              role="status"
+              aria-label="Checking account session"
+              className="flex h-9 w-[5.75rem] items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-1.5 dark:border-slate-700 dark:bg-slate-800 sm:w-28"
+            >
+              <span className="h-7 w-7 shrink-0 animate-pulse rounded-full bg-slate-300 dark:bg-slate-700" />
+              <span className="hidden h-2.5 flex-1 animate-pulse rounded bg-slate-300 dark:bg-slate-700 sm:block" />
+            </div>
+          ) : isLoggedIn ? (
             <div className="relative" ref={dropdownRef}>
               {/* User Avatar Pill Button */}
               <button
