@@ -331,7 +331,7 @@ Patients can select, insert, and update only their own row through RLS. Avatar o
 
 - Vitest covers schedule slot generation, India date handling, emergency triage routing, and baseline schema/RLS presence.
 - Playwright opens public workflows in mobile, tablet, and desktop Chromium viewports and rejects page-level horizontal overflow.
-- GitHub Actions runs lint, TypeScript, unit tests, production build, and Playwright on pushes to `main` and pull requests.
+- The `ci.example.yml` GitHub Actions template runs lint, TypeScript, unit tests, production build, and Playwright after it is installed under `.github/workflows/` with workflow-write credentials.
 - `GET /api/health` reports app/database health with `200` or a safe degraded `503` response and `Cache-Control: no-store`.
 
 ### Responsive UI Requirements
