@@ -56,6 +56,8 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - The reset page accepts Supabase implicit recovery sessions and `token_hash` recovery links, then clears the temporary local session after the password changes
 - Supabase session persisted in cookies through `@supabase/ssr`
 - Next.js Proxy validates JWT claims and reads the database-owned `profiles.role` before serving protected routes
+- Login and immediate-confirmation signup use a full document navigation after session creation, while protected portal links avoid unauthenticated redirect prefetch caching
+- Proxy and client guards share the same role matrix, including admin access to doctor and patient portals
 - `user_metadata.role` and browser `localStorage` are never trusted for authorization
 - Signup metadata can set profile fields, but every new account is forced to the `patient` role by the database trigger
 
@@ -341,7 +343,7 @@ Patients can select, insert, and update only their own row through RLS. Avatar o
 - Booking, tracking, authentication, and AI composer controls stack on narrow screens and retain full-width tap targets.
 - Dense admin tables may scroll inside their own containers; they must not expand the document width.
 - Fixed-format queue, token, and public-display elements use stable responsive dimensions so dynamic data does not shift or overlap nearby UI.
-- Light and dark themes must render with readable contrast at every supported viewport.
+- Light and dark themes must render with readable contrast at every supported viewport; `next-themes` restores the saved mode before the first frame after refresh.
 
 ---
 

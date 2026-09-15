@@ -167,6 +167,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link
               href="/patient/dashboard"
+              prefetch={false}
               className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-95 sm:w-auto sm:hover:scale-105"
             >
               Get OPD Token →
@@ -318,6 +319,10 @@ export default function HomePage() {
             <Link
               key={idx}
               href={card.href}
+              prefetch={
+                !card.href.startsWith("/patient") &&
+                !card.href.startsWith("/doctor")
+              }
               className={`card-3d-hover p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${card.color} shadow-sm group block`}
             >
               <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform">

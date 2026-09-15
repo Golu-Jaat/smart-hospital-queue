@@ -445,6 +445,17 @@ sudo tail -f /var/log/nginx/error.log
 3. Open the link in a normal browser tab and keep the tab open until `/reset-password` finishes checking the session.
 4. If the app reports a network error, verify that the browser can reach the Supabase project URL and that the Vercel Supabase environment variables match the same project.
 
+### Logged-In User Is Redirected Back to Login
+1. Confirm the URL contains the expected production domain and inspect the optional `error` query parameter.
+2. Clear any older service-worker/browser cache once after deploying an auth-routing change, then sign in again.
+3. Verify the Supabase URL and publishable key belong to the same project in both browser and Vercel environments.
+4. Portal navigation deliberately disables protected-route prefetching, and login performs a full navigation so the first protected request includes the new session cookies.
+
+### Dark Mode Flashes After Refresh
+1. Confirm `next-themes` remains installed and the root provider uses `attribute="class"`.
+2. Test a production build; development mode can show rendering behavior that is not present in the optimized build.
+3. Verify browser storage allows the `theme` key and no CDN feature defers inline scripts.
+
 ---
 
 ## ✅ Deployment Checklist

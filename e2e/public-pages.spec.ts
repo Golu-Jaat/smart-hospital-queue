@@ -36,3 +36,34 @@ test("health endpoint returns a monitoring payload", async ({ request }, testInf
   });
   expect(["ok", "degraded"]).toContain(payload.status);
 });
+
+test("saved dark theme is active by the first frame after refresh", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Theme check only runs once");
+
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => localStorage.setItem("theme", "dark"));
+  await page.addInitScript(() => {
+    const firstFrame = new Promise<boolean>((resolve) => {
+      requestAnimationFrame(() => {
+        resolve(document.documentElement.classList.contains("dark"));
+      });
+    });
+
+    Object.defineProperty(window, "__smartQueueDarkAtFirstFrame", {
+      configurable: true,
+      value: firstFrame,
+    });
+  });
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const darkAtFirstFrame = await page.evaluate(async () => {
+    return await (
+      window as typeof window & {
+        __smartQueueDarkAtFirstFrame: Promise<boolean>;
+      }
+    ).__smartQueueDarkAtFirstFrame;
+  });
+
+  expect(darkAtFirstFrame).toBe(true);
+  await expect(page.locator("html")).toHaveClass(/dark/);
+});

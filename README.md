@@ -43,6 +43,7 @@ SmartQueue is a responsive hospital OPD queue management application for patient
 ## Production Safety
 
 - Protected routes validate Supabase sessions and database-owned roles.
+- Admin, doctor, and patient portal navigation shares one role matrix and avoids caching unauthenticated redirects.
 - PostgreSQL Row Level Security restricts data by role and ownership.
 - New public signups always receive the `patient` role from a database trigger.
 - Doctor creation uses a server-only Supabase secret and an atomic database function.
@@ -53,6 +54,7 @@ SmartQueue is a responsive hospital OPD queue management application for patient
 - Gemini credentials stay on the server; browser code never receives the API key.
 - AI requests use a timeout, local medical-rule fallback, and rate limiting.
 - Realtime publication is limited to `queues`, `tokens`, and `notifications`.
+- Saved light/dark mode is applied before the first rendered frame through `next-themes`.
 
 The symptom assistant offers routing guidance only. It is not a diagnosis service and must not replace emergency or professional medical care.
 

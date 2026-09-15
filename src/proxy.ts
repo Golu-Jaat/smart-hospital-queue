@@ -1,23 +1,6 @@
 import { createServerClient, type SetAllCookies } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-type UserRole = "admin" | "doctor" | "patient";
-
-const roleHome: Record<UserRole, string> = {
-  admin: "/admin/dashboard",
-  doctor: "/doctor/dashboard",
-  patient: "/patient/dashboard",
-};
-
-function isKnownRole(value: unknown): value is UserRole {
-  return value === "admin" || value === "doctor" || value === "patient";
-}
-
-function canAccess(pathname: string, role: UserRole) {
-  if (pathname.startsWith("/admin")) return role === "admin";
-  if (pathname.startsWith("/doctor")) return role === "doctor" || role === "admin";
-  return true;
-}
+import { canAccessRolePath, isKnownRole, roleRoutes } from "@/lib/roles";
 
 export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -40,6 +23,7 @@ export async function proxy(request: NextRequest) {
     Object.entries(pendingHeaders).forEach(([name, value]) => {
       redirect.headers.set(name, value);
     });
+    redirect.headers.set("Cache-Control", "private, no-store, max-age=0");
     return redirect;
   };
 
@@ -87,10 +71,11 @@ export async function proxy(request: NextRequest) {
     return redirectWithSession("/login", "profile-unavailable");
   }
 
-  if (!canAccess(request.nextUrl.pathname, profile.role)) {
-    return redirectWithSession(roleHome[profile.role], "forbidden");
+  if (!canAccessRolePath(request.nextUrl.pathname, profile.role)) {
+    return redirectWithSession(roleRoutes[profile.role], "forbidden");
   }
 
+  supabaseResponse.headers.set("Cache-Control", "private, no-store, max-age=0");
   return supabaseResponse;
 }
 

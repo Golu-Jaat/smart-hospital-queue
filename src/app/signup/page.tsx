@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signUp } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -73,7 +71,7 @@ export default function SignupPage() {
 
     setLoading(false);
     if (data.session) {
-      router.replace("/patient/dashboard");
+      window.location.replace("/patient/dashboard");
       return;
     }
 

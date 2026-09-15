@@ -1,30 +1,14 @@
 import { supabase } from "./supabase";
+import { isKnownRole, isRoleAuthorized, type UserRole } from "./roles";
 
-export type UserRole = "admin" | "doctor" | "patient";
+export { isRoleAuthorized };
+export type { UserRole };
 
 export interface UserSessionData {
   role: UserRole;
   fullName: string;
   userId: string | null;
   email: string | null;
-}
-
-export function isRoleAuthorized(userRole: string, requiredRole: "admin" | "doctor" | "patient"): boolean {
-  if (userRole === "admin") return true; // Superuser: Admin can access everything!
-  
-  if (requiredRole === "admin") {
-    return userRole === "admin";
-  }
-
-  if (requiredRole === "doctor") {
-    return userRole === "doctor" || userRole === "admin";
-  }
-
-  if (requiredRole === "patient") {
-    return true; // Everyone can view patient portal
-  }
-
-  return false;
 }
 
 /**
@@ -46,11 +30,7 @@ export async function getCurrentUserRole(): Promise<UserSessionData> {
       .eq("id", user.id)
       .single();
 
-    const role = (
-      profile?.role === "admin" || profile?.role === "doctor"
-        ? profile.role
-        : "patient"
-    ) as UserRole;
+    const role = isKnownRole(profile?.role) ? profile.role : "patient";
     const fullName = profile?.full_name || user.user_metadata?.full_name || "User";
 
     const sessionData: UserSessionData = {

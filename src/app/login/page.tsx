@@ -1,20 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn, getUserProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import type { UserRole } from "@/types/database";
-
-const roleRoutes: Record<UserRole, string> = {
-  patient: "/patient/dashboard",
-  doctor: "/doctor/dashboard",
-  admin: "/admin/dashboard",
-};
+import { isKnownRole, roleRoutes } from "@/lib/roles";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,9 +36,15 @@ export default function LoginPage() {
         return;
       }
 
-      const { data: profile } = await getUserProfile(data.user.id);
-      const role = (profile?.role || "patient") as UserRole;
-      router.replace(roleRoutes[role]);
+      const { data: profile, error: profileError } = await getUserProfile(data.user.id);
+      const role = profile?.role;
+      if (profileError || !isKnownRole(role)) {
+        setError(profileError?.message || "Your account role is unavailable. Please try again.");
+        return;
+      }
+
+      // A full navigation clears any protected-route redirect prefetched before login.
+      window.location.replace(roleRoutes[role]);
     } finally {
       setLoading(false);
     }

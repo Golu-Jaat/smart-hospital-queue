@@ -143,6 +143,7 @@ export function Navbar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className="px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition"
             >
               {item.label}
@@ -216,6 +217,7 @@ export function Navbar() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        prefetch={false}
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 transition"
                       >

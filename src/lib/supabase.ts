@@ -20,9 +20,4 @@ export const supabase =
           detectSessionInUrl: false,
         },
       })
-    : createBrowserClient(url, anonKey, {
-        auth: {
-          detectSessionInUrl: true,
-          flowType: "implicit",
-        },
-      });
+    : createBrowserClient(url, anonKey);
