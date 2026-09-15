@@ -2,7 +2,11 @@
 
 SmartQueue is a responsive hospital OPD queue management application for patients, doctors, administrators, and public waiting-room displays. It combines Supabase Auth and PostgreSQL with realtime queue updates, atomic appointment booking, and a server-side Gemini symptom assistant with a fast local fallback.
 
-**Live application:** [smart-hospital-queue-mu.vercel.app](https://smart-hospital-queue-mu.vercel.app/)
+## Live Deployment
+
+- **Frontend:** [smart-hospital-queue-mu.vercel.app](https://smart-hospital-queue-mu.vercel.app/)
+- **Backend health API:** [smart-hospital-queue-mu.vercel.app/api/health](https://smart-hospital-queue-mu.vercel.app/api/health)
+- **Supabase backend:** [hjzmaqpwumgywshqqrzc.supabase.co](https://hjzmaqpwumgywshqqrzc.supabase.co)
 
 ## Current Features
 
