@@ -5,6 +5,7 @@ import { useState } from "react";
 import { signIn, getUserProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isKnownRole, roleRoutes } from "@/lib/roles";
+import { cacheNavbarRole } from "@/lib/navbar-role-cache";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -44,6 +45,7 @@ export default function LoginPage() {
       }
 
       // A full navigation clears any protected-route redirect prefetched before login.
+      cacheNavbarRole(data.user.id, role);
       window.location.replace(roleRoutes[role]);
     } finally {
       setLoading(false);

@@ -10,6 +10,11 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@/lib/rbac";
 import type { User } from "@supabase/supabase-js";
+import {
+  cacheNavbarRole,
+  clearCachedNavbarRole,
+  readCachedNavbarRole,
+} from "@/lib/navbar-role-cache";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Patient" },
@@ -27,6 +32,7 @@ export function Navbar() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState<UserRole>("patient");
+  const [userId, setUserId] = useState("");
   const [userAvatar, setUserAvatar] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -34,13 +40,18 @@ export function Navbar() {
 
   const seedSessionUser = useCallback((user: User) => {
     setAuthStatus("authenticated");
+    setUserId(user.id);
     setUserEmail(user.email || "");
     setUserName(user.user_metadata?.full_name || "User");
     setUserAvatar(user.user_metadata?.avatar_url || "");
+
+    const cachedRole = readCachedNavbarRole(user.id);
+    if (cachedRole) setUserRole(cachedRole);
   }, []);
 
   const clearUserData = useCallback(() => {
     setAuthStatus("guest");
+    setUserId("");
     setUserName("");
     setUserRole("patient");
     setUserAvatar("");
@@ -96,6 +107,14 @@ export function Navbar() {
         : "patient",
     );
 
+    if (
+      profile?.role === "admin" ||
+      profile?.role === "doctor" ||
+      profile?.role === "patient"
+    ) {
+      cacheNavbarRole(user.id, profile.role);
+    }
+
     if (healthProfile?.avatar_emoji) {
       setUserAvatar(healthProfile.avatar_emoji);
     } else if (healthProfile?.avatar_path) {
@@ -135,6 +154,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     await signOut();
+    if (userId) clearCachedNavbarRole(userId);
     clearUserData();
     setDropdownOpen(false);
     router.push("/login");

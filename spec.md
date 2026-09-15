@@ -59,6 +59,7 @@ Eliminate chaotic hospital OPD waiting rooms by replacing physical token slips a
 - Login and immediate-confirmation signup use a full document navigation after session creation, while protected portal links avoid unauthenticated redirect prefetch caching
 - Proxy and client guards share the same role matrix, including admin access to doctor and patient portals
 - Navbar restores the cookie-backed session before verified profile details load and keeps the initial auth UI neutral, preventing logged-out controls from flashing during refresh
+- The client guard keeps Proxy-authorized dashboard content mounted while it rechecks the session; a per-user role cache may bootstrap navigation display but is never an authorization source
 - `user_metadata.role` and browser `localStorage` are never trusted for authorization
 - Signup metadata can set profile fields, but every new account is forced to the `patient` role by the database trigger
 

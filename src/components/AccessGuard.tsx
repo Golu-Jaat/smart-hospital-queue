@@ -38,14 +38,9 @@ export function AccessGuard({ requiredRole, children }: AccessGuardProps) {
   }, [requiredRole]);
 
   if (checking) {
-    return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Loading portal...
-        </p>
-      </div>
-    );
+    // Proxy has already authorized this protected route. Keep its content stable
+    // while the client guard independently confirms the current session.
+    return <>{children}</>;
   }
 
   // Case 1: User Not Logged In
